@@ -58,10 +58,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { MeshPhysicalMaterial } from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import { PMREMGenerator } from 'three';
-import { RectAreaLightHelper } from 'three/addons/helpers/RectAreaLightHelper.js';
+import { PMREMGenerator, MeshPhysicalMaterial } from 'three';
 import settings from './settings.js';
 // Import Tweakpane
 import { Pane } from 'tweakpane';
@@ -195,17 +193,9 @@ function createMaterials() {
   aoExterior.flipY = false;
   const aoPump = new THREE.TextureLoader().load('public/textures/pump_shadow.png')
   aoPump.flipY = false;
-  // Create and return all materials in an object
   
   // Create the label material
-  labelMaterial = new THREE.MeshStandardMaterial({
-    color: 0xf79272,       // Coral/peach color for the label
-    roughness: 0.4,
-    metalness: 0.1,
-    envMap,
-    envMapIntensity: 1,  
-    map: createLabelTexture(customName)
-  });
+ 
   
   // Create and return all materials in an object
   return {
@@ -224,19 +214,26 @@ function createMaterials() {
       aoMapIntensity: settings.materials.glass.aoMapIntensity,
     }),
     pump: new THREE.MeshStandardMaterial({
-      color: settings.materials.pump.color,       // Black color for pump
+      color: settings.materials.pump.color,
       roughness: settings.materials.pump.roughness,
-      metalness: settings.materials.pump.metalness,        // Slightly metallic for the pump cap
+      metalness: settings.materials.pump.metalness,
       aoMap:aoPump,
       envMap,
       envMapIntensity: settings.materials.pump.envMapIntensity,
     }),
     interiorPlastic: new THREE.MeshStandardMaterial({
-      color: settings.materials.interiorPlastic.color,       // Dark brown color for interior plastic
+      color: settings.materials.interiorPlastic.color, 
       roughness: settings.materials.interiorPlastic.roughness,
       metalness: settings.materials.interiorPlastic.metalness,
     }),
-    label: labelMaterial,
+    label: new THREE.MeshStandardMaterial({
+      color: settings.materials.label.color, 
+      roughness: settings.materials.label.roughness,
+      metalness:  settings.materials.label.metalness,
+      envMap,
+      envMapIntensity:  settings.materials.label.envMapIntensity,  
+      map: createLabelTexture(customName)
+    }),
     ground: new THREE.MeshStandardMaterial({
         aoMap: new THREE.TextureLoader().load('public/textures/ground_shadow.png'),
         color: settings.materials.ground.color,  
@@ -489,8 +486,7 @@ function addMaterialControls(pane, material, folderName) {
   materialFolder.addBinding(material, 'visible');
   
   // Add color control
-  if (material.color) {
-    
+  if (material.color && settings.materials[material.name]) {
     materialFolder.addBinding(settings.materials[material.name], 'color', {
       expanded: false,
       color: {type: 'float'},
@@ -499,7 +495,7 @@ function addMaterialControls(pane, material, folderName) {
     });
   }
   
-  // Add roughness and metalness for StandardMaterial or PhysicalMaterial
+  // // Add roughness and metalness for StandardMaterial or PhysicalMaterial
   if (material.roughness !== undefined) {
     materialFolder.addBinding(material, 'roughness', {
       min: 0,
@@ -631,9 +627,6 @@ Promise.all([
 .then(() => {
   init();
 })
-
-// Initialize font loading when the page loads
-window.onload = loadFonts;
 
 function init() {
   

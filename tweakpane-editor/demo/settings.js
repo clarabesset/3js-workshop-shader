@@ -59,6 +59,12 @@ export default {
         ground: {
           color: 0xdcccbd,  
           aoMapIntensity: 1.3,
+        },
+        label: {
+          color: 0xf79272,
+          roughness: 0.4,
+          metalness: 0.1,
+          envMapIntensity: 1,  
         }
 
       }
