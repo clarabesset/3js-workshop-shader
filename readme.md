@@ -4,7 +4,9 @@
 
 ```bash
 git clone https://github.com/sbcdevp/prose.git
-cd starter-gobelins-pbr
+cd quizz-shader
+cd tweakpane-editor
+cd scroll-product
 ```
 
 ### 2. Install dependencies

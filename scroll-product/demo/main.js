@@ -643,7 +643,6 @@ Promise.all([
 window.onload = loadFonts;
 
 function init() {
-  console.log('Initializing application...');
   
   initScene();
   setupCamera();
