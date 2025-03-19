@@ -257,27 +257,22 @@ function applyMaterialsToModel(model, materials) {
   model.traverse((child) => {
     if (child.isMesh) {
       if (child.name === 'exterior_glass') {
-        console.log('Applying amber glass material to bottle');
         child.material = materials.glass;
         child.material.name = 'glass';
       } 
       else if (child.name === 'pump') {
-        console.log('Applying black material to pump');
         child.material = materials.pump;
         child.material.name = 'pump';
       } 
       else if (child.name === 'interior_plastic') {
-        console.log('Applying brown material to interior_plastic');
         child.material = materials.interiorPlastic;
         child.material.name = 'interiorPlastic';
       }
       else if (child.name === 'label') {
-        console.log('Applying label material');
         child.material = materials.label;
         child.material.name = 'label';
       }
       else if (child.name === 'ground') {
-        console.log('Applying label material');
         child.material = materials.ground;
         child.material.name = 'ground';
       }
@@ -495,11 +490,12 @@ function addMaterialControls(pane, material, folderName) {
   
   // Add color control
   if (material.color) {
-    console.log(settings.materials, material.name);
     
-    materialFolder.addBinding(settings.materials, 'color', {
+    materialFolder.addBinding(settings.materials[material.name], 'color', {
       expanded: false,
       color: {type: 'float'},
+    }).on('change', (ev) => {
+      material.color.set(ev.value);
     });
   }
   
@@ -608,7 +604,6 @@ function animate() {
 }
 
 // Initialize the application
-
 Promise.all([
   new Promise((resolve, reject) => {
     document.fonts.load('28px "Saol-Regular"')
@@ -636,8 +631,6 @@ Promise.all([
 .then(() => {
   init();
 })
-
-
 
 // Initialize font loading when the page loads
 window.onload = loadFonts;
