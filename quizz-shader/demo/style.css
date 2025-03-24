@@ -4,7 +4,20 @@
   box-sizing: border-box;
   font-family: 'Helvetica Neue', Arial, sans-serif;
 }
-
+@font-face {
+  font-family: 'Saol-Medium';
+  src: url('/fonts/saol-text-medium.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Saol-Regular';
+  src: url('/fonts/saol-text-regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
 body {
   background-color: #f9f8f6;
   color: #333;
@@ -61,6 +74,8 @@ h1 {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 15px;
+  font-family: 'Saol-Regular';
+  text-align: center;
 }
 
 .description {

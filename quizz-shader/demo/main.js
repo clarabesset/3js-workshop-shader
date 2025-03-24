@@ -7,15 +7,15 @@ import gsap from 'gsap';
  const quizData = [
   {
     id: 'age',
-    question: 'What is your age?',
+    question: 'First, please select your age',
     description: 'Your hair changes throughout your life. Tell us your age range so we can better understand your hair.',
     options: [
-      { id: 'under18', label: 'Under 18', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
-      { id: '18-24', label: '18-24', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
-      { id: '25-34', label: '25-34', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
-      { id: '35-44', label: '35-44', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
-      { id: '45-54', label: '45-54', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
-      { id: '55+', label: '55+', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' }
+      { id: 'under30', label: 'Under 30', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '30', label: 'in my 30s', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '40', label: 'in my 40s', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '50', label: 'in my 50s', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '60', label: 'in my 60s', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '70orover', label: '70 or over', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' }
     ]
   },
   {
@@ -124,6 +124,7 @@ function selectOption(optionId) {
   if (selectedOption) {
     triggerImpact();
   }
+
 }
 
 // Handle next button click
@@ -132,9 +133,9 @@ function handleNextClick() {
     currentQuestionIndex++;
     renderQuestion();
   } else {
+    currentQuestionIndex++;
     showResults();
   }
-  updateProgress();
 }
 
 // Handle back button click
@@ -230,7 +231,8 @@ const material = new THREE.ShaderMaterial({
     uTime: { value: 0.0 },
     uColor1: { value: new THREE.Color(0xead7f3) },
     uColor2: { value: new THREE.Color(0xf9f7f2) },
-    uColor3: { value: new THREE.Color(0xfda583) },
+    uColor3: { value: new THREE.Color(0xead7f3) },
+    uColor4: { value: new THREE.Color(0xf9f7f2) },
     uStep: { value: 0 },
     uImpactIntensity: {value: 0}
   },
@@ -285,6 +287,8 @@ function animate() {
   requestAnimationFrame(animate);
   material.uniforms.uTime.value += 0.001;
   renderer.render(scene, camera);
+  updateProgress();
+
 }
 
 animate();

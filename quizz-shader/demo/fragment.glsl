@@ -74,7 +74,6 @@ void main() {
         colorA = uColor3;
         colorB = uColor4;
     } else {
-        // Fallback for any other case
         colorA = mix(uColor1, uColor3, sin(uTime) * 0.5 + 0.5);
         colorB = mix(uColor2, uColor4, cos(uTime) * 0.5 + 0.5);
     }
