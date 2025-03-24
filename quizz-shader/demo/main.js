@@ -1,68 +1,7 @@
 import * as THREE from 'three';
-
-// Create the scene
-const scene = new THREE.Scene();
-
-// Create the orthographic camera
-const camera = new THREE.OrthographicCamera(
-  window.innerWidth / -2, window.innerWidth / 2,
-  window.innerHeight / 2, window.innerHeight / -2,
-  -1, 1
-);
-
-// Create the renderer
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Create the shader material
-const material = new THREE.ShaderMaterial({
-  uniforms: {
-    u_resolution: { type: 'v2', value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-    u_time: { type: 'f', value: 0.0 }
-  },
-  vertexShader: `
-    void main() {
-      gl_Position = vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform vec2 u_resolution;
-    uniform float u_time;
-
-    void main() {
-      vec2 st = gl_FragCoord.xy / u_resolution;
-      gl_FragColor = vec4(st.x, st.y, abs(sin(u_time)), 1.0);
-    }
-  `
-});
-
-// Create a plane geometry that covers the screen
-const geometry = new THREE.PlaneGeometry(window.innerWidth, window.innerHeight);
-const mesh = new THREE.Mesh(geometry, material);
-scene.add(mesh);
-
-// Animation loop
-function animate() {
-  requestAnimationFrame(animate);
-  material.uniforms.u_time.value += 0.05;
-  renderer.render(scene, camera);
-}
-
-animate();
-
-// Handle window resize
-window.addEventListener('resize', () => {
-  camera.left = window.innerWidth / -2;
-  camera.right = window.innerWidth / 2;
-  camera.top = window.innerHeight / 2;
-  camera.bottom = window.innerHeight / -2;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
-});
-
+import fragmentShader from './fragment.glsl';
+import vertexShader from './vertex.glsl';
+import gsap from 'gsap';
 
  // Quiz data
  const quizData = [
@@ -181,6 +120,10 @@ function selectOption(optionId) {
   
   // Enable next button
   nextButton.disabled = false;
+
+  if (selectedOption) {
+    triggerImpact();
+  }
 }
 
 // Handle next button click
@@ -215,8 +158,6 @@ function showResults() {
   const ageGroup = answers.age;
   const hairTexture = answers.texture;
   const hairThickness = answers.thickness;
-  const scalpType = answers.scalp;
-  const hairGoal = answers.goals;
   
   let resultMessage = '';
   let recommendationMessage = '';
@@ -260,3 +201,104 @@ function showResults() {
 
 // Start the quiz
 initQuiz();
+
+
+// Create the scene
+const scene = new THREE.Scene();
+
+// Create the orthographic camera
+const camera = new THREE.OrthographicCamera(
+  window.innerWidth / -2, window.innerWidth / 2,
+  window.innerHeight / 2, window.innerHeight / -2,
+  -1, 1000
+);
+camera.position.z = 1;
+
+// Create the renderer
+const renderer = new THREE.WebGLRenderer({ alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0); // Transparent background
+document.body.insertBefore(renderer.domElement, document.body.firstChild);
+renderer.domElement.style.position = 'fixed';
+renderer.domElement.style.top = '0';
+renderer.domElement.style.left = '0';
+renderer.domElement.style.zIndex = '-1';
+
+// Create the shader material with advanced effects for each quiz step
+const material = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime: { value: 0.0 },
+    uColor1: { value: new THREE.Color(0xead7f3) },
+    uColor2: { value: new THREE.Color(0xf9f7f2) },
+    uColor3: { value: new THREE.Color(0xfda583) },
+    uStep: { value: 0 },
+    uImpactIntensity: {value: 0}
+  },
+  vertexShader,
+  fragmentShader,
+  transparent: true
+});
+
+// Create a plane geometry that covers the screen
+const geometry = new THREE.PlaneGeometry(2, 2);
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
+
+
+
+function triggerImpact() {
+  gsap.to(material.uniforms.uImpactIntensity, {
+    value: material.uniforms.uImpactIntensity.value + 10,
+    duration: 0.5,
+    ease: 'power2.inOut',
+    onComplete: () => {
+      gsap.to(material.uniforms.uImpactIntensity, {
+        value: 0,
+        duration: 0.5,
+        ease: 'power2.inOut'
+      });
+    }
+  });
+}
+// Update shader with quiz state
+function updateShaderWithQuizState() {
+  // Update step (normalized to 0-3 range)
+  material.uniforms.uStep.value = currentQuestionIndex;
+}
+
+// Patch the renderQuestion function to update the shader
+const originalRenderQuestion = renderQuestion;
+renderQuestion = function() {
+  originalRenderQuestion();
+  updateShaderWithQuizState();
+};
+
+// Patch selectOption function to update shader
+const originalSelectOption = selectOption;
+selectOption = function(optionId) {
+  originalSelectOption(optionId);
+  updateShaderWithQuizState();
+};
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+  material.uniforms.uTime.value += 0.001;
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  camera.left = window.innerWidth / -2;
+  camera.right = window.innerWidth / 2;
+  camera.top = window.innerHeight / 2;
+  camera.bottom = window.innerHeight / -2;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Initial update
+updateShaderWithQuizState();
