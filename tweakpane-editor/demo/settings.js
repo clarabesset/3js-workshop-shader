@@ -19,7 +19,7 @@ export default {
         }
     },
     lights: {
-        keyLight: {
+      directionalLight: {
           position: { x: 10, y: 10, z: -7.5 },
           intensity: 1.0,
           color: 0xffffff,
@@ -43,7 +43,7 @@ export default {
               reflectivity: 1.6,     
               thickness: 0.1,
               envMapIntensity: 0.1,  
-              aoMapIntensity: 18,
+              aoMapIntensity: 8,
         },
         pump: {
           color: 0x000000,

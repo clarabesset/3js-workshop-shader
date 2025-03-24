@@ -88,7 +88,7 @@ function loadEnvironmentMap() {
   hdrLoader.setDataType(THREE.HalfFloatType);
   
   // Load the HDR file
-  hdrLoader.load('public/textures/hdri/studio.hdr', function(texture) {
+  hdrLoader.load('/textures/hdri/studio.hdr', function(texture) {
     // Configure texture for proper environment mapping
     texture.mapping = THREE.EquirectangularReflectionMapping;
     
@@ -130,13 +130,13 @@ function setupRenderer() {
 function setupLighting() {
   // Add key light (main directional light)
   directionalLight = new THREE.DirectionalLight(
-    settings.lights.keyLight.color,
-    settings.lights.keyLight.intensity
+    settings.lights.directionalLight.color,
+    settings.lights.directionalLight.intensity
   );
   directionalLight.position.set(
-    settings.lights.keyLight.position.x,
-    settings.lights.keyLight.position.y,
-    settings.lights.keyLight.position.z
+    settings.lights.directionalLight.position.x,
+    settings.lights.directionalLight.position.y,
+    settings.lights.directionalLight.position.z
   );
   scene.add(directionalLight);
 
@@ -174,10 +174,11 @@ function loadModel(modelPath) {
 
 // Function to update the label texture
 function updateLabelTexture(name) {
+  console.log(  labelMaterial);
   if (labelMaterial) {
     // Update the custom name
     customName = name;
-    
+      
     // Create a new texture with the updated name
     const newTexture = createLabelTexture(customName);
     
@@ -189,14 +190,21 @@ function updateLabelTexture(name) {
 
 // Create materials for different parts of the model
 function createMaterials() {
-  const aoExterior = new THREE.TextureLoader().load('public/textures/exterior_shadow.png')
+  const aoExterior = new THREE.TextureLoader().load('/textures/exterior_shadow.png')
   aoExterior.flipY = false;
-  const aoPump = new THREE.TextureLoader().load('public/textures/pump_shadow.png')
+  const aoPump = new THREE.TextureLoader().load('/textures/pump_shadow.png')
   aoPump.flipY = false;
   
   // Create the label material
  
-  
+  labelMaterial =  new THREE.MeshStandardMaterial({
+    color: settings.materials.label.color, 
+    roughness: settings.materials.label.roughness,
+    metalness:  settings.materials.label.metalness,
+    envMap,
+    envMapIntensity:  settings.materials.label.envMapIntensity,  
+    map: createLabelTexture(customName)
+  })
   // Create and return all materials in an object
   return {
     glass: new MeshPhysicalMaterial({
@@ -226,16 +234,9 @@ function createMaterials() {
       roughness: settings.materials.interiorPlastic.roughness,
       metalness: settings.materials.interiorPlastic.metalness,
     }),
-    label: new THREE.MeshStandardMaterial({
-      color: settings.materials.label.color, 
-      roughness: settings.materials.label.roughness,
-      metalness:  settings.materials.label.metalness,
-      envMap,
-      envMapIntensity:  settings.materials.label.envMapIntensity,  
-      map: createLabelTexture(customName)
-    }),
+    label: labelMaterial,
     ground: new THREE.MeshStandardMaterial({
-        aoMap: new THREE.TextureLoader().load('public/textures/ground_shadow.png'),
+        aoMap: new THREE.TextureLoader().load('/textures/ground_shadow.png'),
         color: settings.materials.ground.color,  
         aoMapIntensity: settings.materials.ground.roughness,
     })
@@ -380,13 +381,13 @@ function setupTweakpane() {
   });
 
   // Add controls for directional light (key light)
-  const keyLightFolder = lightingFolder.addFolder({
+  const directionalLightFolder = lightingFolder.addFolder({
     title: 'Key Light',
     expanded: false,
   });
 
   // Add light position controls (using settings object)
-  keyLightFolder.addBinding(settings.lights.keyLight, 'position', {
+  directionalLightFolder.addBinding(settings.lights.directionalLight, 'position', {
     min: -20,
     max: 20,
     step: 0.1,
@@ -395,7 +396,7 @@ function setupTweakpane() {
   });
 
   // Add light intensity control
-  keyLightFolder.addBinding(settings.lights.keyLight, 'intensity', {
+  directionalLightFolder.addBinding(settings.lights.directionalLight, 'intensity', {
     min: 0,
     max: 3,
     step: 0.1,
@@ -404,7 +405,7 @@ function setupTweakpane() {
   });
 
   // Add color control
-  keyLightFolder.addBinding(settings.lights.keyLight, 'color', {
+  directionalLightFolder.addBinding(settings.lights.directionalLight, 'color', {
     picker: 'inline',
     expanded: true,
   }).on('change', (ev) => {
@@ -576,17 +577,17 @@ function handleResize() {
   });
 }
 
-let keyLightHelper;
+let directionalLightHelper;
 
 // Add this new function to toggle light helpers
 function toggleLightHelpers(show) {
   // Remove existing helpers if they exist
-  if (keyLightHelper) scene.remove(keyLightHelper);
+  if (directionalLightHelper) scene.remove(directionalLightHelper);
   
   if (show) {
     // Create and add helpers
-    keyLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1);
-    scene.add(keyLightHelper);
+    directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1);
+    scene.add(directionalLightHelper);
 
   }
 }
@@ -641,7 +642,7 @@ function init() {
   loadEnvironmentMap();
   
   // Load the bottle model
-  loadModel('public/models/bottle.glb');
+  loadModel('/models/bottle.glb');
   
   // Start the animation loop
   animate();

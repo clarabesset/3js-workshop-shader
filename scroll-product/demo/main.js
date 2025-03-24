@@ -1,3 +1,238 @@
+// Import necessary Three.js modules
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { PMREMGenerator, MeshPhysicalMaterial } from 'three';
+import settings from './settings.js';
+import Lenis from 'lenis';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+// Import Tweakpane
+import { Pane } from 'tweakpane';
+
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
+
+// Global variables
+let scene, camera, renderer;
+let directionalLight, ambientLight;
+let materials;
+let envMap;
+let labelMaterial; // Add a reference to the label material
+let customName = 'Dreya'; // Add a variable to store the custom name
+let model; // Reference to the loaded model
+let lenis; // Reference to Lenis for smooth scrolling
+
+// Object coordinates for scrolling animation
+const defaultCoordinates = {
+  position: { x: 0, y: -2, z: 0 },
+  rotation: { x: 0, y: 0, z: 0 },
+};
+
+const objectCoordinates = {
+  position: { x: 0, y: -2, z: 0 },
+  rotation: { x: 0, y: 0, z: 0 },
+};
+
+// Added animations for subtle movement
+const addedRotation = {
+  x: 0,
+  y: 0,
+  z: 0,
+};
+
+const addedPosition = {
+  x: 0,
+  y: 0,
+  z: 0,
+};
+
+// Mouse tracking for interactive movement
+const mouse = { x: 0, y: 0 };
+const mouseTarget = { x: 0.5 * window.innerWidth, y: 0.5 * window.innerHeight };
+
+// Initialize the scene
+function initScene() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xdcccbd);
+}
+
+// Initialize Lenis for smooth scrolling
+function initLenis() {
+  lenis = new Lenis({
+    duration: 2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    direction: 'vertical',
+    gestureDirection: 'vertical',
+    smooth: true,
+    smoothTouch: false,
+    touchMultiplier: 2,
+  });
+
+  // Connect Lenis to requestAnimationFrame for smooth scrolling
+  function raf(time) {
+    lenis.raf(time);
+    ScrollTrigger.update();
+    requestAnimationFrame(raf);
+    
+    // Update mouse movement
+    mouse.x += (mouseTarget.x - mouse.x) * 0.02;
+    mouse.y += (mouseTarget.y - mouse.y) * 0.02;
+    
+    // Apply animations to model if it exists
+    if (model) {
+      applyModelAnimations();
+    }
+  }
+  
+  requestAnimationFrame(raf);
+}
+
+// Apply all animations to the model
+function applyModelAnimations() {
+  // Apply base coordinates from scroll
+  const responsiveFactor = window.innerWidth < 800 ? 0.5 : 1;
+  
+  // Position adjustments
+  model.position.x = objectCoordinates.position.x * responsiveFactor + 
+                      0.00001 * (mouse.x - 0.5 * window.innerWidth) + 
+                      addedPosition.x;
+  
+  model.position.y = objectCoordinates.position.y + 
+                      0.00001 * (mouse.y - 0.5 * window.innerHeight) + 
+                      addedPosition.y;
+  
+  model.position.z = objectCoordinates.position.z + addedPosition.z;
+  
+  // Rotation adjustments
+  model.rotation.x = objectCoordinates.rotation.x - 
+                      0.0005 * (mouse.y - 0.5 * window.innerHeight) + 
+                      addedRotation.x;
+  
+  model.rotation.y = objectCoordinates.rotation.y - 
+                      0.0005 * (mouse.x - 0.5 * window.innerWidth) + 
+                      addedRotation.y;
+  
+  model.rotation.z = objectCoordinates.rotation.z + addedRotation.z;
+}
+
+// Initialize ScrollTriggers for scroll-based animations
+function initScrollTriggers() {
+  const sections = document.querySelectorAll('.section');
+  
+  sections.forEach((section, index) => {
+    // Create a ScrollTrigger for each section
+    ScrollTrigger.create({
+      trigger: section,
+      start: index === 0 ? 'center center' : 'top center',
+      end: index === sections.length - 1 ? 'center center' : 'bottom center',
+      scrub: true,
+      onEnter: () => {
+        // Update the label when entering a new section
+        if (labelMaterial) {
+          const sectionName = section.dataset.labelName || 'Dreya';
+          if (customName !== sectionName) {
+            customName = sectionName;
+            labelMaterial.map = createLabelTexture(customName);
+            labelMaterial.needsUpdate = true;
+          }
+        }
+      },
+      onUpdate: (self) => {
+        const rawProgress = self.progress;
+        // Use GSAP's easing for smoother transitions
+        const progress = gsap.parseEase("power4.inOut")(rawProgress);
+        
+        // Calculate and apply rotation values
+        updateObjectRotation(index, progress, sections);
+        
+        // Calculate and apply position values
+        updateObjectPosition(index, progress, sections);
+      },
+    });
+  });
+}
+
+// Update object rotation based on scroll progress
+function updateObjectRotation(index, progress, sections) {
+  // Get current rotation values
+  const currentRotationX = (index === 0 
+    ? defaultCoordinates.rotation.x 
+    : parseFloat(sections[index - 1].dataset.rotationX)) || defaultCoordinates.rotation.x;
+    
+  const currentRotationY = (index === 0 
+    ? defaultCoordinates.rotation.y 
+    : parseFloat(sections[index - 1].dataset.rotationY)) || defaultCoordinates.rotation.y;
+    
+  const currentRotationZ = (index === 0 
+    ? defaultCoordinates.rotation.z 
+    : parseFloat(sections[index - 1].dataset.rotationZ)) || defaultCoordinates.rotation.z;
+  
+  // Get target rotation values
+  const nextRotationX = parseFloat(sections[index].dataset.rotationX) || defaultCoordinates.rotation.x;
+  const nextRotationY = parseFloat(sections[index].dataset.rotationY) || defaultCoordinates.rotation.y;
+  const nextRotationZ = parseFloat(sections[index].dataset.rotationZ) || defaultCoordinates.rotation.z;
+  
+  // Apply interpolated rotation
+  gsap.to(objectCoordinates.rotation, {
+    x: gsap.utils.interpolate(currentRotationX, nextRotationX, progress),
+    y: gsap.utils.interpolate(currentRotationY, nextRotationY, progress),
+    z: gsap.utils.interpolate(currentRotationZ, nextRotationZ, progress),
+    duration: 0.1,     // Add a small duration for smoother transitions
+    overwrite: true  
+  });
+}
+
+// Update object position based on scroll progress
+function updateObjectPosition(index, progress, sections) {
+  // Get current position values
+  const currentPositionX = (index === 0 
+    ? defaultCoordinates.position.x 
+    : parseFloat(sections[index - 1].dataset.positionX)) || defaultCoordinates.position.x;
+    
+  const currentPositionY = (index === 0 
+    ? defaultCoordinates.position.y 
+    : parseFloat(sections[index - 1].dataset.positionY)) || defaultCoordinates.position.y;
+    
+  const currentPositionZ = (index === 0 
+    ? defaultCoordinates.position.z 
+    : parseFloat(sections[index - 1].dataset.positionZ)) || defaultCoordinates.position.z;
+  
+  // Get target position values
+  const nextPositionX = parseFloat(sections[index].dataset.positionX) || defaultCoordinates.position.x;
+  const nextPositionY = parseFloat(sections[index].dataset.positionY) || defaultCoordinates.position.y;
+  const nextPositionZ = parseFloat(sections[index].dataset.positionZ) || defaultCoordinates.position.z;
+  
+  // Apply responsive factor for smaller screens
+  const responsiveFactor = window.innerWidth < 800 ? 0.5 : 1;
+  
+  // Apply interpolated position
+  gsap.to(objectCoordinates.position, {
+    x: responsiveFactor * gsap.utils.interpolate(currentPositionX, nextPositionX, progress),
+    y: gsap.utils.interpolate(currentPositionY, nextPositionY, progress),
+    z: gsap.utils.interpolate(currentPositionZ, nextPositionZ, progress),
+    duration: 0.1,     // Add a small duration for smoother transitions
+    overwrite: true  
+  });
+  
+  // Update label name based on current section
+  // Only update when progress is near 1 to avoid constant texture updates
+  if (progress > 0.9 && labelMaterial) {
+    // Get the name from the section's data attribute or use a default
+    const sectionName = sections[index].dataset.labelName || 'Dreya';
+    
+    // Only update if the name has changed
+    if (customName !== sectionName) {
+      customName = sectionName;
+      labelMaterial.map = createLabelTexture(customName);
+      labelMaterial.needsUpdate = true;
+    }
+  }
+}
+
 // Create a texture for the label
 const canvas = document.createElement('canvas');
 canvas.width = 1024;
@@ -5,7 +240,6 @@ canvas.height = 1024;
 const ctx = canvas.getContext('2d');
 
 function createLabelTexture(customName = 'Dreya') {
-
   const leftMargin = 120;
   
   // Clear canvas
@@ -52,35 +286,6 @@ function createLabelTexture(customName = 'Dreya') {
   return texture;
 }
 
-
-// Import necessary Three.js modules
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { MeshPhysicalMaterial } from 'three';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import { PMREMGenerator } from 'three';
-import { RectAreaLightHelper } from 'three/addons/helpers/RectAreaLightHelper.js';
-import settings from './settings.js';
-// Import Tweakpane
-import { Pane } from 'tweakpane';
-
-// Global variables
-let scene, camera, renderer, controls;
-let directionalLight, ambientLight;
-let materials;
-let pane; // Tweakpane instance
-let envMap;
-let labelMaterial; // Add a reference to the label material
-let customName = 'Dreya'; // Add a variable to store the custom name
-
-// Initialize the scene
-function initScene() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xdcccbd);
-}
-
 // Load EXR environment map
 function loadEnvironmentMap() {
  // Create RGBELoader for loading HDR files
@@ -90,7 +295,7 @@ function loadEnvironmentMap() {
   hdrLoader.setDataType(THREE.HalfFloatType);
   
   // Load the HDR file
-  hdrLoader.load('public/textures/hdri/studio.hdr', function(texture) {
+  hdrLoader.load('/textures/hdri/studio.hdr', function(texture) {
     // Configure texture for proper environment mapping
     texture.mapping = THREE.EquirectangularReflectionMapping;
     
@@ -116,6 +321,7 @@ function setupCamera() {
   );
   // Position slightly higher and to the side for a product shot look
   camera.position.set(settings.camera.position.x, settings.camera.position.y, settings.camera.position.z);
+  camera.lookAt(0, 0, 0);
 }
 
 // Create and configure the renderer
@@ -123,22 +329,20 @@ function setupRenderer() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 }
-
 
 // Set up lighting for the scene
 function setupLighting() {
   // Add key light (main directional light)
   directionalLight = new THREE.DirectionalLight(
-    settings.lights.keyLight.color,
-    settings.lights.keyLight.intensity
+    settings.lights.directionalLight.color,
+    settings.lights.directionalLight.intensity
   );
   directionalLight.position.set(
-    settings.lights.keyLight.position.x,
-    settings.lights.keyLight.position.y,
-    settings.lights.keyLight.position.z
+    settings.lights.directionalLight.position.x,
+    settings.lights.directionalLight.position.y,
+    settings.lights.directionalLight.position.z
   );
   scene.add(directionalLight);
 
@@ -174,38 +378,12 @@ function loadModel(modelPath) {
   );
 }
 
-// Function to update the label texture
-function updateLabelTexture(name) {
-  if (labelMaterial) {
-    // Update the custom name
-    customName = name;
-    
-    // Create a new texture with the updated name
-    const newTexture = createLabelTexture(customName);
-    
-    // Apply the new texture to the label material
-    labelMaterial.map = newTexture;
-    labelMaterial.needsUpdate = true;
-  }
-}
-
 // Create materials for different parts of the model
 function createMaterials() {
-  const aoExterior = new THREE.TextureLoader().load('public/textures/exterior_shadow.png')
+  const aoExterior = new THREE.TextureLoader().load('/textures/exterior_shadow.png')
   aoExterior.flipY = false;
-  const aoPump = new THREE.TextureLoader().load('public/textures/pump_shadow.png')
+  const aoPump = new THREE.TextureLoader().load('/textures/pump_shadow.png')
   aoPump.flipY = false;
-  // Create and return all materials in an object
-  
-  // Create the label material
-  labelMaterial = new THREE.MeshStandardMaterial({
-    color: 0xf79272,       // Coral/peach color for the label
-    roughness: 0.4,
-    metalness: 0.1,
-    envMap,
-    envMapIntensity: 1,  
-    map: createLabelTexture(customName)
-  });
   
   // Create and return all materials in an object
   return {
@@ -224,23 +402,25 @@ function createMaterials() {
       aoMapIntensity: settings.materials.glass.aoMapIntensity,
     }),
     pump: new THREE.MeshStandardMaterial({
-      color: settings.materials.pump.color,       // Black color for pump
+      color: settings.materials.pump.color,
       roughness: settings.materials.pump.roughness,
-      metalness: settings.materials.pump.metalness,        // Slightly metallic for the pump cap
+      metalness: settings.materials.pump.metalness,
       aoMap:aoPump,
       envMap,
       envMapIntensity: settings.materials.pump.envMapIntensity,
     }),
     interiorPlastic: new THREE.MeshStandardMaterial({
-      color: settings.materials.interiorPlastic.color,       // Dark brown color for interior plastic
+      color: settings.materials.interiorPlastic.color, 
       roughness: settings.materials.interiorPlastic.roughness,
       metalness: settings.materials.interiorPlastic.metalness,
     }),
-    label: labelMaterial,
-    ground: new THREE.MeshStandardMaterial({
-        aoMap: new THREE.TextureLoader().load('public/textures/ground_shadow.png'),
-        color: settings.materials.ground.color,  
-        aoMapIntensity: settings.materials.ground.roughness,
+    label: new THREE.MeshStandardMaterial({
+      color: settings.materials.label.color, 
+      roughness: settings.materials.label.roughness,
+      metalness:  settings.materials.label.metalness,
+      envMap,
+      envMapIntensity:  settings.materials.label.envMapIntensity,  
+      map: createLabelTexture(customName)
     })
   };
 }
@@ -257,38 +437,33 @@ function applyMaterialsToModel(model, materials) {
   model.traverse((child) => {
     if (child.isMesh) {
       if (child.name === 'exterior_glass') {
-        console.log('Applying amber glass material to bottle');
         child.material = materials.glass;
         child.material.name = 'glass';
       } 
       else if (child.name === 'pump') {
-        console.log('Applying black material to pump');
         child.material = materials.pump;
         child.material.name = 'pump';
       } 
       else if (child.name === 'interior_plastic') {
-        console.log('Applying brown material to interior_plastic');
         child.material = materials.interiorPlastic;
         child.material.name = 'interiorPlastic';
       }
       else if (child.name === 'label') {
-        console.log('Applying label material');
         child.material = materials.label;
+        labelMaterial = child.material; // Store reference to label material
         child.material.name = 'label';
       }
       else if (child.name === 'ground') {
-        console.log('Applying label material');
-        child.material = materials.ground;
-        child.material.name = 'ground';
+        child.visible = false
       }
     }
   });
+  
 }
-
 
 // Handle successful model loading
 function onModelLoaded(gltf) {
-  const model = gltf.scene;
+  model = gltf.scene;
   
   // Create materials for all parts
   materials = createMaterials();
@@ -299,10 +474,9 @@ function onModelLoaded(gltf) {
   // Add the model to the scene
   scene.add(model);
   
-  // After model is loaded, setup Tweakpane with initial camera values
-  setupTweakpane();
+  // Initialize scroll triggers after model is loaded
+  initScrollTriggers();
 }
-
 
 // Handle loading progress
 function onLoadProgress(progress) {
@@ -314,266 +488,6 @@ function onLoadError(error) {
   console.error('An error occurred while loading the model:', error);
 }
 
-// Set up orbit controls for camera interaction
-function setupControls() {
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = settings.controls.dampingFactor;
-  controls.maxPolarAngle = settings.controls.maxPolarAngle;
-  controls.target.set(settings.controls.target.x, settings.controls.target.y, settings.controls.target.z);
-}
-
-// Setup Tweakpane control panel
-function setupTweakpane() {
-  pane = new Pane({
-    title: 'Scene Controls',
-    expanded: true,
-  });
-  
-  // Create a folder for label customization
-  const labelFolder = pane.addFolder({
-    title: 'Label Customization',
-    expanded: true,
-  });
-  
-  // Add text input for changing the name on the label
-  labelFolder.addBinding(
-    { name: customName },
-    'name',
-    { label: 'Custom Name' }
-  ).on('change', (ev) => {
-    updateLabelTexture(ev.value);
-  });
-  
-  // Create a folder for camera position
-  const cameraFolder = pane.addFolder({
-    title: 'Camera',
-    expanded: false,
-  });
-  
-  // Add sliders for camera position
-  cameraFolder.addBinding(settings.camera, 'position', {
-    min: -50,
-    max: 50,
-    step: 0.1,
-  }).on('change', (ev) => {
-    camera.position.set(ev.value.x, ev.value.y, ev.value.z);
-  });
-  
-  
-  // Add sliders for orbit controls target
-  cameraFolder.addBinding(settings.controls, 'target', {
-    min: -10,
-    max: 10,
-    step: 0.1,
-  }).on('change', (ev) => {
-    controls.target.set(ev.value.x, ev.value.y, ev.value.z);
-    controls.update();
-  });
-  
-  // Add FOV control
-  cameraFolder.addBinding(settings.camera, 'fov', {
-    min: 10,
-    max: 100,
-    step: 1,
-  }).on('change', () => {
-    camera.fov = settings.camera.fov;
-    camera.updateProjectionMatrix();
-  });
-
-  // Add lighting controls folder
-  const lightingFolder = pane.addFolder({
-    title: 'Lighting Controls',
-    expanded: false,
-  });
-
-  // Add controls for directional light (key light)
-  const keyLightFolder = lightingFolder.addFolder({
-    title: 'Key Light',
-    expanded: false,
-  });
-
-  // Add light position controls (using settings object)
-  keyLightFolder.addBinding(settings.lights.keyLight, 'position', {
-    min: -20,
-    max: 20,
-    step: 0.1,
-  }).on('change', (ev) => {
-    directionalLight.position.set(ev.value.x, ev.value.y, ev.value.z);
-  });
-
-  // Add light intensity control
-  keyLightFolder.addBinding(settings.lights.keyLight, 'intensity', {
-    min: 0,
-    max: 3,
-    step: 0.1,
-  }).on('change', (ev) => {
-    directionalLight.intensity = ev.value;
-  });
-
-  // Add color control
-  keyLightFolder.addBinding(settings.lights.keyLight, 'color', {
-    picker: 'inline',
-    expanded: true,
-  }).on('change', (ev) => {
-    directionalLight.color.set(ev.value);
-  });
-
-  // Add ambient light controls
-  const ambientLightFolder = lightingFolder.addFolder({
-    title: 'Ambient Light',
-    expanded: false,
-  });
-
-  // Add ambient light intensity control
-  ambientLightFolder.addBinding(settings.lights.ambientLight, 'intensity', {
-    min: 0,
-    max: 1,
-    step: 0.05,
-  }).on('change', (ev) => {
-    ambientLight.intensity = ev.value;
-  });
-
-  // Add ambient light color control
-  ambientLightFolder.addBinding(settings.lights.ambientLight, 'color', {
-    picker: 'inline',
-    expanded: true,
-  }).on('change', (ev) => {
-    ambientLight.color.set(ev.value);
-  });
-
-  // Add helper toggle
-  lightingFolder.addBinding(settings.lights.helpers, 'visible', {label: 'Light Helpers'})
-    .on('change', (ev) => {
-      toggleLightHelpers(ev.value);
-    });
-
-    // Create a folder for materials
-  const materialsFolder = pane.addFolder({
-    title: 'Material Controls',
-    expanded: false,
-  });
-  
-  // Add controls for each material
-  if (materials) {
-    // Add glass material controls
-    if (materials.glass) {
-      addMaterialControls(materialsFolder, materials.glass, 'Glass Material');
-    }
-    
-    // Add pump material controls
-    if (materials.pump) {
-      addMaterialControls(materialsFolder, materials.pump, 'Pump Material');
-    }
-    
-    // Add interior plastic material controls
-    if (materials.interiorPlastic) {
-      addMaterialControls(materialsFolder, materials.interiorPlastic, 'Interior Plastic');
-    }
-    
-    // Add label material controls
-    if (materials.label) {
-      addMaterialControls(materialsFolder, materials.label, 'Label Material');
-    }
-    
-    // Add ground material controls
-    if (materials.ground) {
-      addMaterialControls(materialsFolder, materials.ground, 'Ground Material');
-    }
-  }
-}
-
-function addMaterialControls(pane, material, folderName) {
-  // Create a folder for the material
-  const materialFolder = pane.addFolder({
-    title: folderName,
-    expanded: false,
-  });
-  
-  // Add basic material properties that all materials have
-  materialFolder.addBinding(material, 'visible');
-  
-  // Add color control
-  if (material.color) {
-    console.log(settings.materials, material.name);
-    
-    materialFolder.addBinding(settings.materials, 'color', {
-      expanded: false,
-      color: {type: 'float'},
-    });
-  }
-  
-  // Add roughness and metalness for StandardMaterial or PhysicalMaterial
-  if (material.roughness !== undefined) {
-    materialFolder.addBinding(material, 'roughness', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  if (material.metalness !== undefined) {
-    materialFolder.addBinding(material, 'metalness', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  // Add environment map intensity
-  if (material.envMapIntensity !== undefined) {
-    materialFolder.addBinding(material, 'envMapIntensity', {
-      min: 0,
-      max: 5,
-      step: 0.1,
-    });
-  }
-  
-  // Add physical material specific properties
-  if (material.transmission !== undefined) {
-    materialFolder.addBinding(material, 'transmission', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  if (material.ior !== undefined) {
-    materialFolder.addBinding(material, 'ior', {
-      min: 1,
-      max: 2.333,
-      step: 0.01,
-    });
-  }
-  
-  if (material.reflectivity !== undefined) {
-    materialFolder.addBinding(material, 'reflectivity', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  if (material.thickness !== undefined) {
-    materialFolder.addBinding(material, 'thickness', {
-      min: 0,
-      max: 5,
-      step: 0.1,
-    });
-  }
-  
-  
-  // AO Map intensity if it exists
-  if (material.aoMapIntensity !== undefined) {
-    materialFolder.addBinding(material, 'aoMapIntensity', {
-      min: 0,
-      max: 20,
-      step: 0.01,
-    });
-  }
-  
-  return materialFolder;
-}
 
 // Handle window resize events
 function handleResize() {
@@ -584,31 +498,21 @@ function handleResize() {
   });
 }
 
-let keyLightHelper;
-
-// Add this new function to toggle light helpers
-function toggleLightHelpers(show) {
-  // Remove existing helpers if they exist
-  if (keyLightHelper) scene.remove(keyLightHelper);
-  
-  if (show) {
-    // Create and add helpers
-    keyLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1);
-    scene.add(keyLightHelper);
-
-  }
+// Track mouse movement for interactive effect
+function setupMouseTracking() {
+  window.addEventListener('mousemove', (e) => {
+    mouseTarget.x = e.clientX;
+    mouseTarget.y = e.clientY;
+  });
 }
-
 
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
-  controls.update(); // Required if controls.enableDamping = true
   renderer.render(scene, camera);
 }
 
 // Initialize the application
-
 Promise.all([
   new Promise((resolve, reject) => {
     document.fonts.load('28px "Saol-Regular"')
@@ -637,25 +541,23 @@ Promise.all([
   init();
 })
 
-
-
-// Initialize font loading when the page loads
-window.onload = loadFonts;
-
 function init() {
-  
+  // Initialize scene and components
   initScene();
   setupCamera();
   setupRenderer();
   setupLighting();
-  setupControls();
+  setupMouseTracking();
   handleResize();
+  
+  // Initialize scrolling
+  initLenis();
   
   // Load the environment map
   loadEnvironmentMap();
   
   // Load the bottle model
-  loadModel('public/models/bottle.glb');
+  loadModel('/models/bottle.glb');
   
   // Start the animation loop
   animate();

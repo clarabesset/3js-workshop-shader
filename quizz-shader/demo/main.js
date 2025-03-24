@@ -1,662 +1,262 @@
-// Create a texture for the label
-const canvas = document.createElement('canvas');
-canvas.width = 1024;
-canvas.height = 1024;
-const ctx = canvas.getContext('2d');
-
-function createLabelTexture(customName = 'Dreya') {
-
-  const leftMargin = 120;
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-  // Draw label background
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-   
-  // Draw divider lines - scale line width and positions
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(leftMargin, 280);
-  ctx.lineTo(896, 280);
-  ctx.stroke();
-   
-  // Text color
-  ctx.fillStyle = '#000000';
-   
-  // Scale all font sizes and positions
-  ctx.font = '64px "Saol-Regular", serif'; 
-  ctx.fillText('Custom', leftMargin, 160); 
-  ctx.fillText('Shampoo', leftMargin, 220);
-   
-  ctx.font = '24px sans-serif'; 
-  ctx.fillText('FOR', leftMargin, 340);
-   
-  ctx.font = '64px "Saol-Regular", serif';
-  ctx.fillText(customName, leftMargin, 400);
-   
-  ctx.font = '84px "Saol-Medium", serif';
-  ctx.fillText('prose', leftMargin, 900);
-   
-  // Draw registered trademark symbol
-  ctx.font = '20px sans-serif';
-  ctx.fillText('®', leftMargin + 180, 870);
-  
-  // Create texture from canvas
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  texture.flipY = false; // Flip texture vertically
-
-  return texture;
-}
-
-
-// Import necessary Three.js modules
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { MeshPhysicalMaterial } from 'three';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import { PMREMGenerator } from 'three';
-import { RectAreaLightHelper } from 'three/addons/helpers/RectAreaLightHelper.js';
-import settings from './settings.js';
-// Import Tweakpane
-import { Pane } from 'tweakpane';
 
-// Global variables
-let scene, camera, renderer, controls;
-let directionalLight, ambientLight;
-let materials;
-let pane; // Tweakpane instance
-let envMap;
-let labelMaterial; // Add a reference to the label material
-let customName = 'Dreya'; // Add a variable to store the custom name
+// Create the scene
+const scene = new THREE.Scene();
 
-// Initialize the scene
-function initScene() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xdcccbd);
-}
+// Create the orthographic camera
+const camera = new THREE.OrthographicCamera(
+  window.innerWidth / -2, window.innerWidth / 2,
+  window.innerHeight / 2, window.innerHeight / -2,
+  -1, 1
+);
 
-// Load EXR environment map
-function loadEnvironmentMap() {
- // Create RGBELoader for loading HDR files
-  const hdrLoader = new RGBELoader();
-    
-  // Enable texture loading via fetch and set the load path
-  hdrLoader.setDataType(THREE.HalfFloatType);
-  
-  // Load the HDR file
-  hdrLoader.load('public/textures/hdri/studio.hdr', function(texture) {
-    // Configure texture for proper environment mapping
-    texture.mapping = THREE.EquirectangularReflectionMapping;
-    
-    // Generate mipmapped cubemap for performance and quality
-    const pmremGenerator = new PMREMGenerator(renderer);
-    pmremGenerator.compileEquirectangularShader();
-    
-    envMap = pmremGenerator.fromEquirectangular(texture).texture;
-    pmremGenerator.dispose();
-    
-    // Apply to scene environment for reflections
-    scene.environment = envMap;
-  });
-}
+// Create the renderer
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-// Set up the camera
-function setupCamera() {
-  camera = new THREE.PerspectiveCamera(
-    settings.camera.fov,                                   // Narrower field of view for product photography
-    window.innerWidth / window.innerHeight, // Aspect ratio
-    settings.camera.near,                                  // Near clipping plane
-    settings.camera.far                                  // Far clipping plane
-  );
-  // Position slightly higher and to the side for a product shot look
-  camera.position.set(settings.camera.position.x, settings.camera.position.y, settings.camera.position.z);
-}
-
-// Create and configure the renderer
-function setupRenderer() {
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.shadowMap.enabled = true;
-  document.body.appendChild(renderer.domElement);
-}
-
-
-// Set up lighting for the scene
-function setupLighting() {
-  // Add key light (main directional light)
-  directionalLight = new THREE.DirectionalLight(
-    settings.lights.keyLight.color,
-    settings.lights.keyLight.intensity
-  );
-  directionalLight.position.set(
-    settings.lights.keyLight.position.x,
-    settings.lights.keyLight.position.y,
-    settings.lights.keyLight.position.z
-  );
-  scene.add(directionalLight);
-
-  // Add ambient light for overall illumination
-  ambientLight = new THREE.AmbientLight(
-    settings.lights.ambientLight.color,
-    settings.lights.ambientLight.intensity
-  );
-  scene.add(ambientLight);
-}
-
-// Configure and return a DRACOLoader instance
-function createDracoLoader() {
-  const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
-  dracoLoader.setDecoderConfig({ type: 'js' });
-  return dracoLoader;
-}
-
-// Load the GLB model
-function loadModel(modelPath) {
-  // Set up GLTF loader with Draco support
-  const dracoLoader = createDracoLoader();
-  const gltfLoader = new GLTFLoader();
-  gltfLoader.setDRACOLoader(dracoLoader);
-
-  // Load the GLB model
-  gltfLoader.load(
-    modelPath,
-    onModelLoaded,
-    onLoadProgress,
-    onLoadError
-  );
-}
-
-// Function to update the label texture
-function updateLabelTexture(name) {
-  if (labelMaterial) {
-    // Update the custom name
-    customName = name;
-    
-    // Create a new texture with the updated name
-    const newTexture = createLabelTexture(customName);
-    
-    // Apply the new texture to the label material
-    labelMaterial.map = newTexture;
-    labelMaterial.needsUpdate = true;
-  }
-}
-
-// Create materials for different parts of the model
-function createMaterials() {
-  const aoExterior = new THREE.TextureLoader().load('public/textures/exterior_shadow.png')
-  aoExterior.flipY = false;
-  const aoPump = new THREE.TextureLoader().load('public/textures/pump_shadow.png')
-  aoPump.flipY = false;
-  // Create and return all materials in an object
-  
-  // Create the label material
-  labelMaterial = new THREE.MeshStandardMaterial({
-    color: 0xf79272,       // Coral/peach color for the label
-    roughness: 0.4,
-    metalness: 0.1,
-    envMap,
-    envMapIntensity: 1,  
-    map: createLabelTexture(customName)
-  });
-  
-  // Create and return all materials in an object
-  return {
-    glass: new MeshPhysicalMaterial({
-      color: settings.materials.glass.color, 
-      metalness: settings.materials.glass.metalness,
-      roughness: settings.materials.glass.roughness,        
-      transmission: settings.materials.glass.transmission, 
-      transparent: true,
-      ior: settings.materials.glass.ior,
-      reflectivity: settings.materials.glass.reflectivity,     
-      thickness: settings.materials.glass.thickness,
-      envMap,
-      envMapIntensity: settings.materials.glass.envMapIntensity,  
-      aoMap: aoExterior,
-      aoMapIntensity: settings.materials.glass.aoMapIntensity,
-    }),
-    pump: new THREE.MeshStandardMaterial({
-      color: settings.materials.pump.color,       // Black color for pump
-      roughness: settings.materials.pump.roughness,
-      metalness: settings.materials.pump.metalness,        // Slightly metallic for the pump cap
-      aoMap:aoPump,
-      envMap,
-      envMapIntensity: settings.materials.pump.envMapIntensity,
-    }),
-    interiorPlastic: new THREE.MeshStandardMaterial({
-      color: settings.materials.interiorPlastic.color,       // Dark brown color for interior plastic
-      roughness: settings.materials.interiorPlastic.roughness,
-      metalness: settings.materials.interiorPlastic.metalness,
-    }),
-    label: labelMaterial,
-    ground: new THREE.MeshStandardMaterial({
-        aoMap: new THREE.TextureLoader().load('public/textures/ground_shadow.png'),
-        color: settings.materials.ground.color,  
-        aoMapIntensity: settings.materials.ground.roughness,
-    })
-  };
-}
-
-// Apply materials to the model
-function applyMaterialsToModel(model, materials) {
-  model.traverse((child) => {
-    if (child.isMesh) {
-      console.log(`- ${child.name}`);
+// Create the shader material
+const material = new THREE.ShaderMaterial({
+  uniforms: {
+    u_resolution: { type: 'v2', value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    u_time: { type: 'f', value: 0.0 }
+  },
+  vertexShader: `
+    void main() {
+      gl_Position = vec4(position, 1.0);
     }
-  });
+  `,
+  fragmentShader: `
+    uniform vec2 u_resolution;
+    uniform float u_time;
 
-  // Apply each material to its corresponding part
-  model.traverse((child) => {
-    if (child.isMesh) {
-      if (child.name === 'exterior_glass') {
-        console.log('Applying amber glass material to bottle');
-        child.material = materials.glass;
-        child.material.name = 'glass';
-      } 
-      else if (child.name === 'pump') {
-        console.log('Applying black material to pump');
-        child.material = materials.pump;
-        child.material.name = 'pump';
-      } 
-      else if (child.name === 'interior_plastic') {
-        console.log('Applying brown material to interior_plastic');
-        child.material = materials.interiorPlastic;
-        child.material.name = 'interiorPlastic';
-      }
-      else if (child.name === 'label') {
-        console.log('Applying label material');
-        child.material = materials.label;
-        child.material.name = 'label';
-      }
-      else if (child.name === 'ground') {
-        console.log('Applying label material');
-        child.material = materials.ground;
-        child.material.name = 'ground';
-      }
+    void main() {
+      vec2 st = gl_FragCoord.xy / u_resolution;
+      gl_FragColor = vec4(st.x, st.y, abs(sin(u_time)), 1.0);
     }
-  });
-}
+  `
+});
 
-
-// Handle successful model loading
-function onModelLoaded(gltf) {
-  const model = gltf.scene;
-  
-  // Create materials for all parts
-  materials = createMaterials();
-  
-  // Apply materials to the appropriate model parts
-  applyMaterialsToModel(model, materials);
-  
-  // Add the model to the scene
-  scene.add(model);
-  
-  // After model is loaded, setup Tweakpane with initial camera values
-  setupTweakpane();
-}
-
-
-// Handle loading progress
-function onLoadProgress(progress) {
-  console.log('Loading progress: ', (progress.loaded / progress.total) * 100, '%');
-}
-
-// Handle loading errors
-function onLoadError(error) {
-  console.error('An error occurred while loading the model:', error);
-}
-
-// Set up orbit controls for camera interaction
-function setupControls() {
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = settings.controls.dampingFactor;
-  controls.maxPolarAngle = settings.controls.maxPolarAngle;
-  controls.target.set(settings.controls.target.x, settings.controls.target.y, settings.controls.target.z);
-}
-
-// Setup Tweakpane control panel
-function setupTweakpane() {
-  pane = new Pane({
-    title: 'Scene Controls',
-    expanded: true,
-  });
-  
-  // Create a folder for label customization
-  const labelFolder = pane.addFolder({
-    title: 'Label Customization',
-    expanded: true,
-  });
-  
-  // Add text input for changing the name on the label
-  labelFolder.addBinding(
-    { name: customName },
-    'name',
-    { label: 'Custom Name' }
-  ).on('change', (ev) => {
-    updateLabelTexture(ev.value);
-  });
-  
-  // Create a folder for camera position
-  const cameraFolder = pane.addFolder({
-    title: 'Camera',
-    expanded: false,
-  });
-  
-  // Add sliders for camera position
-  cameraFolder.addBinding(settings.camera, 'position', {
-    min: -50,
-    max: 50,
-    step: 0.1,
-  }).on('change', (ev) => {
-    camera.position.set(ev.value.x, ev.value.y, ev.value.z);
-  });
-  
-  
-  // Add sliders for orbit controls target
-  cameraFolder.addBinding(settings.controls, 'target', {
-    min: -10,
-    max: 10,
-    step: 0.1,
-  }).on('change', (ev) => {
-    controls.target.set(ev.value.x, ev.value.y, ev.value.z);
-    controls.update();
-  });
-  
-  // Add FOV control
-  cameraFolder.addBinding(settings.camera, 'fov', {
-    min: 10,
-    max: 100,
-    step: 1,
-  }).on('change', () => {
-    camera.fov = settings.camera.fov;
-    camera.updateProjectionMatrix();
-  });
-
-  // Add lighting controls folder
-  const lightingFolder = pane.addFolder({
-    title: 'Lighting Controls',
-    expanded: false,
-  });
-
-  // Add controls for directional light (key light)
-  const keyLightFolder = lightingFolder.addFolder({
-    title: 'Key Light',
-    expanded: false,
-  });
-
-  // Add light position controls (using settings object)
-  keyLightFolder.addBinding(settings.lights.keyLight, 'position', {
-    min: -20,
-    max: 20,
-    step: 0.1,
-  }).on('change', (ev) => {
-    directionalLight.position.set(ev.value.x, ev.value.y, ev.value.z);
-  });
-
-  // Add light intensity control
-  keyLightFolder.addBinding(settings.lights.keyLight, 'intensity', {
-    min: 0,
-    max: 3,
-    step: 0.1,
-  }).on('change', (ev) => {
-    directionalLight.intensity = ev.value;
-  });
-
-  // Add color control
-  keyLightFolder.addBinding(settings.lights.keyLight, 'color', {
-    picker: 'inline',
-    expanded: true,
-  }).on('change', (ev) => {
-    directionalLight.color.set(ev.value);
-  });
-
-  // Add ambient light controls
-  const ambientLightFolder = lightingFolder.addFolder({
-    title: 'Ambient Light',
-    expanded: false,
-  });
-
-  // Add ambient light intensity control
-  ambientLightFolder.addBinding(settings.lights.ambientLight, 'intensity', {
-    min: 0,
-    max: 1,
-    step: 0.05,
-  }).on('change', (ev) => {
-    ambientLight.intensity = ev.value;
-  });
-
-  // Add ambient light color control
-  ambientLightFolder.addBinding(settings.lights.ambientLight, 'color', {
-    picker: 'inline',
-    expanded: true,
-  }).on('change', (ev) => {
-    ambientLight.color.set(ev.value);
-  });
-
-  // Add helper toggle
-  lightingFolder.addBinding(settings.lights.helpers, 'visible', {label: 'Light Helpers'})
-    .on('change', (ev) => {
-      toggleLightHelpers(ev.value);
-    });
-
-    // Create a folder for materials
-  const materialsFolder = pane.addFolder({
-    title: 'Material Controls',
-    expanded: false,
-  });
-  
-  // Add controls for each material
-  if (materials) {
-    // Add glass material controls
-    if (materials.glass) {
-      addMaterialControls(materialsFolder, materials.glass, 'Glass Material');
-    }
-    
-    // Add pump material controls
-    if (materials.pump) {
-      addMaterialControls(materialsFolder, materials.pump, 'Pump Material');
-    }
-    
-    // Add interior plastic material controls
-    if (materials.interiorPlastic) {
-      addMaterialControls(materialsFolder, materials.interiorPlastic, 'Interior Plastic');
-    }
-    
-    // Add label material controls
-    if (materials.label) {
-      addMaterialControls(materialsFolder, materials.label, 'Label Material');
-    }
-    
-    // Add ground material controls
-    if (materials.ground) {
-      addMaterialControls(materialsFolder, materials.ground, 'Ground Material');
-    }
-  }
-}
-
-function addMaterialControls(pane, material, folderName) {
-  // Create a folder for the material
-  const materialFolder = pane.addFolder({
-    title: folderName,
-    expanded: false,
-  });
-  
-  // Add basic material properties that all materials have
-  materialFolder.addBinding(material, 'visible');
-  
-  // Add color control
-  if (material.color) {
-    console.log(settings.materials, material.name);
-    
-    materialFolder.addBinding(settings.materials, 'color', {
-      expanded: false,
-      color: {type: 'float'},
-    });
-  }
-  
-  // Add roughness and metalness for StandardMaterial or PhysicalMaterial
-  if (material.roughness !== undefined) {
-    materialFolder.addBinding(material, 'roughness', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  if (material.metalness !== undefined) {
-    materialFolder.addBinding(material, 'metalness', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  // Add environment map intensity
-  if (material.envMapIntensity !== undefined) {
-    materialFolder.addBinding(material, 'envMapIntensity', {
-      min: 0,
-      max: 5,
-      step: 0.1,
-    });
-  }
-  
-  // Add physical material specific properties
-  if (material.transmission !== undefined) {
-    materialFolder.addBinding(material, 'transmission', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  if (material.ior !== undefined) {
-    materialFolder.addBinding(material, 'ior', {
-      min: 1,
-      max: 2.333,
-      step: 0.01,
-    });
-  }
-  
-  if (material.reflectivity !== undefined) {
-    materialFolder.addBinding(material, 'reflectivity', {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-  }
-  
-  if (material.thickness !== undefined) {
-    materialFolder.addBinding(material, 'thickness', {
-      min: 0,
-      max: 5,
-      step: 0.1,
-    });
-  }
-  
-  
-  // AO Map intensity if it exists
-  if (material.aoMapIntensity !== undefined) {
-    materialFolder.addBinding(material, 'aoMapIntensity', {
-      min: 0,
-      max: 20,
-      step: 0.01,
-    });
-  }
-  
-  return materialFolder;
-}
-
-// Handle window resize events
-function handleResize() {
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-}
-
-let keyLightHelper;
-
-// Add this new function to toggle light helpers
-function toggleLightHelpers(show) {
-  // Remove existing helpers if they exist
-  if (keyLightHelper) scene.remove(keyLightHelper);
-  
-  if (show) {
-    // Create and add helpers
-    keyLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1);
-    scene.add(keyLightHelper);
-
-  }
-}
-
+// Create a plane geometry that covers the screen
+const geometry = new THREE.PlaneGeometry(window.innerWidth, window.innerHeight);
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
 
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
-  controls.update(); // Required if controls.enableDamping = true
+  material.uniforms.u_time.value += 0.05;
   renderer.render(scene, camera);
 }
 
-// Initialize the application
+animate();
 
-Promise.all([
-  new Promise((resolve, reject) => {
-    document.fonts.load('28px "Saol-Regular"')
-      .then(fonts => {
-        if (fonts.length > 0) {
-          resolve();
-        } else {
-          reject(new Error('Failed to load Saol-Regular'));
-        }
-      })
-      .catch(reject);
-  }),
-  new Promise((resolve, reject) => {
-    document.fonts.load('32px "Saol-Medium"')
-      .then(fonts => {
-        if (fonts.length > 0) {
-          resolve();
-        } else {
-          reject(new Error('Failed to load Saol-Medium'));
-        }
-      })
-      .catch(reject);
-  })
-])
-.then(() => {
-  init();
-})
+// Handle window resize
+window.addEventListener('resize', () => {
+  camera.left = window.innerWidth / -2;
+  camera.right = window.innerWidth / 2;
+  camera.top = window.innerHeight / 2;
+  camera.bottom = window.innerHeight / -2;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+});
 
 
+ // Quiz data
+ const quizData = [
+  {
+    id: 'age',
+    question: 'What is your age?',
+    description: 'Your hair changes throughout your life. Tell us your age range so we can better understand your hair.',
+    options: [
+      { id: 'under18', label: 'Under 18', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '18-24', label: '18-24', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '25-34', label: '25-34', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '35-44', label: '35-44', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '45-54', label: '45-54', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' },
+      { id: '55+', label: '55+', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="#555"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#555"/></svg>' }
+    ]
+  },
+  {
+    id: 'texture',
+    question: 'What is your hair texture?',
+    description: 'Understanding your hair texture helps us determine the right formulation for you.',
+    options: [
+      { id: 'straight', label: 'Straight', icon: '<svg viewBox="0 0 24 24"><path d="M3 6h18v2H3z" fill="#555"/><path d="M3 11h18v2H3z" fill="#555"/><path d="M3 16h18v2H3z" fill="#555"/></svg>' },
+      { id: 'wavy', label: 'Wavy', icon: '<svg viewBox="0 0 24 24"><path d="M3 6c3 0 3 4 6 4s3-4 6-4 3 4 6 4" fill="none" stroke="#555" stroke-width="2"/><path d="M3 14c3 0 3 4 6 4s3-4 6-4 3 4 6 4" fill="none" stroke="#555" stroke-width="2"/></svg>' },
+      { id: 'curly', label: 'Curly', icon: '<svg viewBox="0 0 24 24"><path d="M4 4c4 0 2 4 6 4s2-4 6-4 2 4 6 4" fill="none" stroke="#555" stroke-width="2"/><path d="M4 12c4 0 2 4 6 4s2-4 6-4 2 4 6 4" fill="none" stroke="#555" stroke-width="2"/></svg>' },
+      { id: 'coily', label: 'Coily', icon: '<svg viewBox="0 0 24 24"><path d="M4 5c1-1 2-1 3 0s2 1 3 0 2-1 3 0 2 1 3 0 2-1 3 0" fill="none" stroke="#555" stroke-width="2"/><path d="M4 12c1-1 2-1 3 0s2 1 3 0 2-1 3 0 2 1 3 0 2-1 3 0" fill="none" stroke="#555" stroke-width="2"/><path d="M4 19c1-1 2-1 3 0s2 1 3 0 2-1 3 0 2 1 3 0 2-1 3 0" fill="none" stroke="#555" stroke-width="2"/></svg>' }
+    ]
+  },
+  {
+    id: 'thickness',
+    question: 'How would you describe your hair thickness?',
+    description: 'Hair thickness refers to the width of each individual hair strand.',
+    options: [
+      { id: 'fine', label: 'Fine', icon: '<svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="#555" stroke-width="1"/></svg>' },
+      { id: 'medium', label: 'Medium', icon: '<svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="#555" stroke-width="2"/></svg>' },
+      { id: 'thick', label: 'Thick', icon: '<svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="#555" stroke-width="3"/></svg>' }
+    ]
+  }
+];
 
-// Initialize font loading when the page loads
-window.onload = loadFonts;
+// State
+let currentQuestionIndex = 0;
+const answers = {};
+let selectedOption = null;
 
-function init() {
+// DOM elements
+const quizContainer = document.getElementById('quiz-container');
+const nextButton = document.getElementById('next-btn');
+const backButton = document.getElementById('back-btn');
+const progressFill = document.getElementById('progress-fill');
+
+// Initialize quiz
+function initQuiz() {
+  renderQuestion();
+  updateProgress();
   
-  initScene();
-  setupCamera();
-  setupRenderer();
-  setupLighting();
-  setupControls();
-  handleResize();
-  
-  // Load the environment map
-  loadEnvironmentMap();
-  
-  // Load the bottle model
-  loadModel('public/models/bottle.glb');
-  
-  // Start the animation loop
-  animate();
+  // Event listeners
+  nextButton.addEventListener('click', handleNextClick);
+  backButton.addEventListener('click', handleBackClick);
 }
+
+// Render current question
+function renderQuestion() {
+  const currentQuestion = quizData[currentQuestionIndex];
+  selectedOption = answers[currentQuestion.id] || null;
+  
+  let html = `
+    <div class="question">
+      <h1>${currentQuestion.question}</h1>
+      <p class="description">${currentQuestion.description}</p>
+      <div class="options">
+  `;
+  
+  currentQuestion.options.forEach(option => {
+    const isSelected = selectedOption === option.id;
+    html += `
+      <div class="option ${isSelected ? 'selected' : ''}" data-id="${option.id}">
+        <div class="option-icon">${option.icon}</div>
+        <div class="option-label">${option.label}</div>
+      </div>
+    `;
+  });
+  
+  html += `
+      </div>
+    </div>
+  `;
+  
+  quizContainer.innerHTML = html;
+  
+  // Add click event listeners to options
+  document.querySelectorAll('.option').forEach(option => {
+    option.addEventListener('click', () => selectOption(option.dataset.id));
+  });
+  
+  // Update button states
+  nextButton.disabled = selectedOption === null;
+  backButton.style.display = currentQuestionIndex > 0 ? 'block' : 'none';
+  
+  // Update button text for last question
+  if (currentQuestionIndex === quizData.length - 1) {
+    nextButton.textContent = 'See Results';
+  } else {
+    nextButton.textContent = 'Next';
+  }
+}
+
+// Select an option
+function selectOption(optionId) {
+  selectedOption = optionId;
+  answers[quizData[currentQuestionIndex].id] = optionId;
+  
+  // Update UI
+  document.querySelectorAll('.option').forEach(option => {
+    option.classList.toggle('selected', option.dataset.id === optionId);
+  });
+  
+  // Enable next button
+  nextButton.disabled = false;
+}
+
+// Handle next button click
+function handleNextClick() {
+  if (currentQuestionIndex < quizData.length - 1) {
+    currentQuestionIndex++;
+    renderQuestion();
+  } else {
+    showResults();
+  }
+  updateProgress();
+}
+
+// Handle back button click
+function handleBackClick() {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    renderQuestion();
+    updateProgress();
+  }
+}
+
+// Update progress bar
+function updateProgress() {
+  const progress = ((currentQuestionIndex) / quizData.length) * 100;
+  progressFill.style.width = `${progress}%`;
+}
+
+// Show results
+function showResults() {
+  // Create personalized message based on answers
+  const ageGroup = answers.age;
+  const hairTexture = answers.texture;
+  const hairThickness = answers.thickness;
+  const scalpType = answers.scalp;
+  const hairGoal = answers.goals;
+  
+  let resultMessage = '';
+  let recommendationMessage = '';
+  
+  // Age-specific message
+  if (ageGroup === 'under18' || ageGroup === '18-24') {
+    resultMessage += 'Your younger hair tends to be healthier and more resilient. ';
+  } else if (ageGroup === '25-34' || ageGroup === '35-44') {
+    resultMessage += 'At this stage, your hair may start to show some changes in texture and thickness. ';
+  } else {
+    resultMessage += 'Mature hair often requires more moisture and gentle care. ';
+  }
+  
+  // Texture and thickness combined message
+  resultMessage += `With your ${hairThickness} ${hairTexture} hair, `;
+  
+  // Render result page
+  quizContainer.innerHTML = `
+    <div class="result-container">
+      <h1 class="result-heading">Your Custom Hair Profile</h1>
+      <p class="result-summary">${resultMessage}</p>
+      <p class="result-summary">${recommendationMessage}</p>
+      <button id="restart-btn" style="margin-top: 30px;">Retake Quiz</button>
+    </div>
+  `;
+  
+  // Hide navigation buttons
+  nextButton.style.display = 'none';
+  backButton.style.display = 'none';
+  
+  // Add restart button event listener
+  document.getElementById('restart-btn').addEventListener('click', () => {
+    currentQuestionIndex = 0;
+    Object.keys(answers).forEach(key => delete answers[key]);
+    renderQuestion();
+    updateProgress();
+    nextButton.style.display = 'block';
+    nextButton.disabled = true;
+  });
+}
+
+// Start the quiz
+initQuiz();
