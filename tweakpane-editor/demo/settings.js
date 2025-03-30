@@ -43,7 +43,7 @@ export default {
               reflectivity: 1.6,     
               thickness: 0.1,
               envMapIntensity: 0.1,  
-              aoMapIntensity: 8,
+              aoMapIntensity: 1,
         },
         pump: {
           color: 0x000000,

@@ -1,7 +1,7 @@
 export default {
     camera: {
         fov: 50,
-        near: 0.1,
+        near: 0.01,
         far: 1000,
         position: {
             x: 0,

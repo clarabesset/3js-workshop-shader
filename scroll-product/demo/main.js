@@ -2,7 +2,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { PMREMGenerator, MeshPhysicalMaterial } from 'three';
 import settings from './settings.js';
@@ -10,8 +9,9 @@ import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Import Tweakpane
-import { Pane } from 'tweakpane';
+
+import fragmentShader from './fragment.glsl';
+import vertexShader from './vertex.glsl';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -25,6 +25,14 @@ let labelMaterial; // Add a reference to the label material
 let customName = 'Dreya'; // Add a variable to store the custom name
 let model; // Reference to the loaded model
 let lenis; // Reference to Lenis for smooth scrolling
+let backgroundMesh;
+let backgroundMaterial;
+
+let lastScrollTop = 0;
+let scrollSpeed = 0;
+let scrollSpeedTarget = 0;
+const scrollSpeedFactor = 0.1; // Adjust for sensitivity
+const scrollSpeedDecay = 0.95; 
 
 // Object coordinates for scrolling animation
 const defaultCoordinates = {
@@ -72,10 +80,24 @@ function initLenis() {
     touchMultiplier: 2,
   });
 
+  lenis.on('scroll', ({ scroll }) => {
+    // Calculate speed based on how much scrolled since last frame
+    const delta = scroll - lastScrollTop;
+    scrollSpeedTarget = Math.abs(delta) * scrollSpeedFactor;
+    lastScrollTop = scroll;
+  });
+
   // Connect Lenis to requestAnimationFrame for smooth scrolling
   function raf(time) {
     lenis.raf(time);
     ScrollTrigger.update();
+    
+    // Smoothly interpolate scroll speed
+    scrollSpeed = scrollSpeed * scrollSpeedDecay + scrollSpeedTarget * (1 - scrollSpeedDecay);
+    
+    // Apply scroll speed decay
+    scrollSpeedTarget *= scrollSpeedDecay;
+    
     requestAnimationFrame(raf);
     
     // Update mouse movement
@@ -85,6 +107,11 @@ function initLenis() {
     // Apply animations to model if it exists
     if (model) {
       applyModelAnimations();
+    }
+    
+    // Update background with scroll speed
+    if (backgroundMaterial) {
+      updateBackground(scrollSpeed);
     }
   }
   
@@ -144,13 +171,21 @@ function initScrollTriggers() {
       onUpdate: (self) => {
         const rawProgress = self.progress;
         // Use GSAP's easing for smoother transitions
-        const progress = gsap.parseEase("power4.inOut")(rawProgress);
+
+        // Eased progress for smoother transitions
+        const easedProgress = gsap.parseEase("power4.inOut")(rawProgress);
+
+        // Linear progress for direct mapping
+        const linearProgress = rawProgress;
         
         // Calculate and apply rotation values
-        updateObjectRotation(index, progress, sections);
+        updateObjectRotation(index, easedProgress, sections);
         
         // Calculate and apply position values
-        updateObjectPosition(index, progress, sections);
+        updateObjectPosition(index, easedProgress, sections);
+
+        updateBackground(easedProgress);
+
       },
     });
   });
@@ -231,6 +266,15 @@ function updateObjectPosition(index, progress, sections) {
       labelMaterial.needsUpdate = true;
     }
   }
+}
+function updateBackground(speed) {
+    if (!backgroundMaterial) return;
+    
+    // Clamp the speed to a reasonable range
+    const clampedSpeed = Math.min(5.0, speed);
+    
+    // Update scroll speed uniform
+    backgroundMaterial.uniforms.uScrollSpeed.value = clampedSpeed;
 }
 
 // Create a texture for the label
@@ -425,6 +469,28 @@ function createMaterials() {
   };
 }
 
+function createBackground() {
+      // Create the shader material with advanced effects for each quiz step
+      backgroundMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0.0 },
+        uColor1: { value: new THREE.Color(0xf3d2b6) },
+        uColor2: { value: new THREE.Color(0xf9f7f2) },
+        uScrollSpeed: {value: 0}
+      },
+      vertexShader,
+      fragmentShader,
+      transparent: false,
+      side: THREE.DoubleSide,
+    });
+
+    // Create a plane geometry that covers the screen
+    const geometry = new THREE.PlaneGeometry(30, 15);
+    backgroundMesh = new THREE.Mesh(geometry, backgroundMaterial);
+    backgroundMesh.position.set(0, 0, 5); // Position it behind the model
+    scene.add(backgroundMesh);
+}
+
 // Apply materials to the model
 function applyMaterialsToModel(model, materials) {
   model.traverse((child) => {
@@ -495,6 +561,7 @@ function handleResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    backgroundMesh.scale.set(window.innerWidth, window.innerHeight, 1);
   });
 }
 
@@ -509,6 +576,8 @@ function setupMouseTracking() {
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
+  backgroundMaterial.uniforms.uTime.value += 0.001;
+
   renderer.render(scene, camera);
 }
 
@@ -555,9 +624,13 @@ function init() {
   
   // Load the environment map
   loadEnvironmentMap();
-  
+
+  // Load the background
+  createBackground();
+
   // Load the bottle model
   loadModel('/models/bottle.glb');
+
   
   // Start the animation loop
   animate();
