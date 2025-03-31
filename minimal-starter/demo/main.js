@@ -5,6 +5,8 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 const textureLoader = new THREE.TextureLoader();
 const gltfLoader = new GLTFLoader();
+const dracoLoader = createDracoLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
 
 function createDracoLoader() {
   const dracoLoader = new DRACOLoader();
