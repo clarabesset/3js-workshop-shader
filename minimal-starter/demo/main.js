@@ -48,23 +48,20 @@ function createMesh() {
     vertexShader,
     fragmentShader,
     uniforms: {
-      col1: {
-        value: new THREE.Color('#EAD7F3')
-      },
-      col2: {
-        value: new THREE.Color('#ECFF92')
-      },
-      col3: {
-        value: new THREE.Color('#F69371')
+      proseColors: {
+        value: [
+          // new THREE.Vector3(Math.random(), Math.random(), Math.random()),
+          new THREE.Color('#EAD7F3'),
+          new THREE.Color('#BBACC2'),
+          new THREE.Color('#B9C2A6'),
+          new THREE.Color('#4D523C'),
+          new THREE.Color('#ECFF92'),
+          new THREE.Color('#F69371'),
+          new THREE.Color('#C5765A'),
+        ],
       },
       circles: {
-        value: new Float32Array([
-          new THREE.Vector2(Math.random(), Math.random()),
-          new THREE.Vector2(Math.random(), Math.random()),
-          new THREE.Vector2(Math.random(), Math.random()),
-          new THREE.Vector2(Math.random(), Math.random()),
-          new THREE.Vector2(Math.random(), Math.random()),
-        ])
+        value: Array.from({length: 15}).map(() => new THREE.Vector2(Math.random(), Math.random()))
       },
       u_time: {
         value: 0.0,
