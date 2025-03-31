@@ -3,6 +3,9 @@ import { Pane } from 'tweakpane';
 import { GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
+import vertexShader from './vertex.glsl'
+import fragmentShader from './fragment.glsl'
+
 const textureLoader = new THREE.TextureLoader();
 const gltfLoader = new GLTFLoader();
 const dracoLoader = createDracoLoader();
@@ -49,7 +52,7 @@ let roughnessTexture = null;
 let heightTexture = null;
 
 async function createLoader() {
-    gltfLoader.load('monkey.glb', async (result) => {
+    gltfLoader.load('monkey-compressed.glb', async (result) => {
         model = result.scene;
         
         albedoTexture = await textureLoader.load('albedo.png')
@@ -97,15 +100,9 @@ function createMesh() {
 }
 
 function createMonkey() {
-    const material = new THREE.MeshStandardMaterial({ 
-        map: albedoTexture,
-        normalMap: normalTexture,
-        normalScale: new THREE.Vector2(10, 10),
-        aoMap: aoTexture,
-        aoMapIntensity : 1,
-        roughnessMap: roughnessTexture,
-        displacementMap: heightTexture,
-        displacementScale: 0.1,
+    const material = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader
     })
     
     model.traverse((child) => {
