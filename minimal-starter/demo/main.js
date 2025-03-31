@@ -132,3 +132,5 @@ init();
 //   camera.aspect = window.innerWidth / window.innerHeight;
 //   camera.updateProjectionMatrix();
 // });
+
+console.log('Hello Three.js!');
