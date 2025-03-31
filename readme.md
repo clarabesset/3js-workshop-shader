@@ -4,6 +4,7 @@
 
 ```bash
 git clone https://github.com/sbcdevp/prose.git
+cd minimal-starter
 cd quizz-shader
 cd tweakpane-editor
 cd scroll-product
