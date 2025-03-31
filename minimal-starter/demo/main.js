@@ -1,8 +1,17 @@
 import * as THREE from 'three';
 import { Pane } from 'tweakpane';
+import { GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 const textureLoader = new THREE.TextureLoader();
+const gltfLoader = new GLTFLoader();
 
+function createDracoLoader() {
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
+  dracoLoader.setDecoderConfig({ type: 'js' });
+  return dracoLoader;
+}
 
 
 let renderer = null
@@ -30,6 +39,7 @@ function createRenderer() {
     renderer.setSize(window.innerWidth, window.innerHeight)
 }
 
+let model = null
 let albedoTexture = null;
 let normalTexture = null;
 let aoTexture = null;
@@ -37,14 +47,21 @@ let roughnessTexture = null;
 let heightTexture = null;
 
 async function createLoader() {
-    albedoTexture = await textureLoader.load('albedo.png')
-    normalTexture = await textureLoader.load('normal.png')
-    aoTexture = await textureLoader.load('ao.png')
-    roughnessTexture = await textureLoader.load('roughness.png')
-    heightTexture = await textureLoader.load('height.png')
-    createMesh();
+    gltfLoader.load('monkey.glb', async (result) => {
+        model = result.scene;
+        
+        albedoTexture = await textureLoader.load('albedo.png')
+        normalTexture = await textureLoader.load('normal.png')
+        aoTexture = await textureLoader.load('ao.png')
+        roughnessTexture = await textureLoader.load('roughness.png')
+        heightTexture = await textureLoader.load('height.png')
 
-    createDebugger()
+        createMesh();
+        createMonkey();
+        createDebugger()
+    })
+    
+
 }
 
 function createCamera() {
@@ -77,6 +94,26 @@ function createMesh() {
     scene.add(mesh)
 }
 
+function createMonkey() {
+    const material = new THREE.MeshStandardMaterial({ 
+        map: albedoTexture,
+        normalMap: normalTexture,
+        normalScale: new THREE.Vector2(10, 10),
+        aoMap: aoTexture,
+        aoMapIntensity : 1,
+        roughnessMap: roughnessTexture,
+        displacementMap: heightTexture,
+        displacementScale: 0.1,
+    })
+    
+    model.traverse((child) => {
+        if(child.isMesh) {
+            child.material = material
+        }
+    })
+    model.position.y = 5
+    scene.add(model);
+}
 function createLights() {
     const ambientLight = new THREE.AmbientLight(new THREE.Color('#ffffff'), 2) // soft white light
     scene.add(ambientLight)
@@ -94,7 +131,7 @@ function createDebugger() {
 }
 function animate() {
     requestAnimationFrame(animate)
-
+    model.rotation.y += 0.01
     renderer.render(scene, camera)
 }
 
