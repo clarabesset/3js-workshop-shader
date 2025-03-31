@@ -6,7 +6,7 @@ void main() {
     vec3 green = vec3(0.305, 0.321, 0.239);
     vec3 salmon = vec3(0.964, 0.572, 0.447);
 
-    vec3 finalColor = mix(salmon, green, vUv.x);
+    vec3 finalColor = mix(salmon, green, sin(u_time) * 0.5 + 0.5);
 
     gl_FragColor = vec4(finalColor, 1);
 }
