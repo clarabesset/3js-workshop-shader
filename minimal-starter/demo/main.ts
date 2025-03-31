@@ -1,20 +1,26 @@
 import * as THREE from 'three';
 import { Pane } from 'tweakpane';
 
+import P5 from 'p5';
+
 import vertexShader from './vertex.glsl';
 import fragmentShader from './fragment.glsl';
+
+import { sketch } from './sketch';
 
 let renderer = null;
 let scene = null;
 let camera = null;
 
+let p5Mesh = null;
 let mesh = null;
 
 function init() {
-  createRenderer();
-  createScene();
-  createCamera();
+  const renderer = createRenderer();
+  const scene = createScene();
+  const camera = createCamera();
   createMesh();
+  createP5Mesh();
 
   animate();
 }
@@ -25,6 +31,8 @@ function createRenderer() {
   });
 
   renderer.setSize(window.innerWidth, window.innerHeight);
+
+  return renderer;
 }
 
 let model = null;
@@ -37,8 +45,10 @@ function createCamera() {
 
   camera.lookAt(0, 0, 0);
 }
+
 function createScene() {
   scene = new THREE.Scene();
+  return scene;
 }
 
 function createMesh() {
@@ -61,7 +71,9 @@ function createMesh() {
         ],
       },
       circles: {
-        value: Array.from({length: 15}).map(() => new THREE.Vector2(Math.random(), Math.random()))
+        value: Array.from({ length: 15 }).map(
+          () => new THREE.Vector2(Math.random(), Math.random())
+        ),
       },
       u_time: {
         value: 0.0,
@@ -72,6 +84,7 @@ function createMesh() {
   mesh = new THREE.Mesh(geometry, backgroundMaterial);
   mesh.scale.set(window.innerWidth / window.innerHeight, 1, 1);
   scene.add(mesh);
+  return mesh;
 }
 
 function createDebugger() {
@@ -86,6 +99,34 @@ function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
   backgroundMaterial.uniforms.u_time.value += 0.01;
+
+  // p5Mesh.rotation.y += 0.01;
+}
+
+function createP5Mesh() {
+  const p = new P5(sketch, document.querySelector('body')!);
+
+  setTimeout(() => {
+    const p5canvas = document.querySelector('#defaultCanvas0')!;
+    console.log('p5canvas', p5canvas);
+
+    const geo = new THREE.PlaneGeometry();
+    const texture = new THREE.CanvasTexture(p5canvas);
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('white'),
+      side: THREE.DoubleSide,
+      map: texture,
+      opacity: 0.3,
+      transparent: true,
+    });
+
+    mat.needsUpdate = true;
+
+    p5Mesh = new THREE.Mesh(geo, mat);
+    p5Mesh.scale.set(0.18, 0.18, 1);
+    p5Mesh.position.set(0.4, 0.4, 0);
+    scene.add(p5Mesh);
+  }, 200);
 }
 
 init();
