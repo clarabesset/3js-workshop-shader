@@ -17,7 +17,7 @@ function init() {
   createRenderer();
   createScene();
   createCamera();
-  createMesh();
+  setBackgroundColor();
 
   animate();
 }
@@ -41,9 +41,29 @@ function createScene() {
   scene = new THREE.Scene();
 }
 
-function createMesh() {
-  const geometry = new THREE.PlaneGeometry(1.1, 1.1, 128, 128);
+function setBackgroundColor() {
+  let scrollTimeout;
 
+  window.addEventListener('scroll', () => {
+    targetScrollMultiplier = 8.0; // accélération temporaire
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      targetScrollMultiplier = 1.0; // retour à la normale après un petit délai sans scroll
+    }, 200);
+  });
+
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    backgroundMaterial.uniforms.u_resolution.value.set(
+      renderer.domElement.width,
+      renderer.domElement.height
+    );
+    mesh.scale.set(window.innerWidth / window.innerHeight, 1, 1);
+  });
+
+  const geometry = new THREE.PlaneGeometry(1.1, 1.1, 128, 128);
   backgroundMaterial = new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -54,7 +74,6 @@ function createMesh() {
       },
     },
   });
-
   mesh = new THREE.Mesh(geometry, backgroundMaterial);
   mesh.scale.set(window.innerWidth / window.innerHeight, 1, 1);
   scene.add(mesh);
@@ -77,26 +96,5 @@ function animate() {
 }
 
 init();
-
-let scrollTimeout;
-
-window.addEventListener('scroll', () => {
-  targetScrollMultiplier = 8.0; // accélération temporaire
-  clearTimeout(scrollTimeout);
-  scrollTimeout = setTimeout(() => {
-    targetScrollMultiplier = 1.0; // retour à la normale après un petit délai sans scroll
-  }, 200);
-});
-
-window.addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  backgroundMaterial.uniforms.u_resolution.value.set(
-    renderer.domElement.width,
-    renderer.domElement.height
-  );
-  mesh.scale.set(window.innerWidth / window.innerHeight, 1, 1);
-});
 
 console.log('Hello Three.js!');
