@@ -1,6 +1,7 @@
 varying vec2 vUv;
 
 uniform float u_time;
+uniform float aspectRatio;
 
 const int circlesCount = 15;
 uniform vec2 circles[circlesCount];

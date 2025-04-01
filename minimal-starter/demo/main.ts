@@ -58,6 +58,7 @@ function createMesh() {
     vertexShader,
     fragmentShader,
     uniforms: {
+      aspectRatio: { value: window.innerWidth / window.innerHeight },
       proseColors: {
         value: [
           // new THREE.Vector3(Math.random(), Math.random(), Math.random()),
