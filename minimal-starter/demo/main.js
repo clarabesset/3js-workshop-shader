@@ -7,11 +7,7 @@ let renderer = null;
 let scene = null;
 let camera = null;
 
-let scrollSpeedMultiplier = 1.0;
-let targetScrollMultiplier = 1.0;
-
 let mesh = null;
-let backgroundMaterial = null;
 
 function init() {
   createRenderer();
@@ -39,6 +35,22 @@ function createCamera() {
 }
 function createScene() {
   scene = new THREE.Scene();
+}
+
+let scrollSpeedMultiplier = 1.0;
+let targetScrollMultiplier = 1.0;
+let backgroundMaterial = null;
+
+function animateBackground() {
+  // interpolation douce vers la vitesse cible
+  scrollSpeedMultiplier += (targetScrollMultiplier - scrollSpeedMultiplier) * 0.1;
+
+  backgroundMaterial.uniforms.u_time.value += 0.001 * scrollSpeedMultiplier;
+
+  backgroundMaterial.uniforms.u_resolution.value.set(
+    renderer.domElement.width,
+    renderer.domElement.height
+  );
 }
 
 function setBackgroundColor() {
@@ -81,16 +93,7 @@ function setBackgroundColor() {
 
 function animate() {
   requestAnimationFrame(animate);
-
-  // interpolation douce vers la vitesse cible
-  scrollSpeedMultiplier += (targetScrollMultiplier - scrollSpeedMultiplier) * 0.1;
-
-  backgroundMaterial.uniforms.u_time.value += 0.001 * scrollSpeedMultiplier;
-
-  backgroundMaterial.uniforms.u_resolution.value.set(
-    renderer.domElement.width,
-    renderer.domElement.height
-  );
+  animateBackground();
 
   renderer.render(scene, camera);
 }
