@@ -6,6 +6,8 @@ import P5 from 'p5';
 import vertexShader from './vertex.glsl';
 import fragmentShader from './fragment.glsl';
 
+import { createLetterTexture } from './createLetterTexture';
+
 import { sketch } from './sketch';
 
 let renderer = null;
@@ -23,7 +25,7 @@ function init() {
 
   createP5Mesh(
     {
-      position: [-0.45, 0.4, 0],
+      position: [-0.45, 0.05, 0],
     },
     {
       letter: 'P',
@@ -33,7 +35,7 @@ function init() {
   );
   createP5Mesh(
     {
-      position: [-0.225, 0.4, 0],
+      position: [-0.225, 0.05, 0],
     },
     {
       letter: 'R',
@@ -47,18 +49,19 @@ function init() {
   );
   createP5Mesh(
     {
-      position: [0, 0.4, 0],
+      position: [0, 0.05, 0],
     },
     {
       letter: 'O',
       framesQuantity: 55,
+      poissonDiscRadius: 13.5,
       strokeBaseWeight: 0.5,
       curlSeed: 5,
     }
   );
   createP5Mesh(
     {
-      position: [0.225, 0.4, 0],
+      position: [0.225, 0.05, 0],
     },
     {
       letter: 'S',
@@ -68,43 +71,61 @@ function init() {
   );
   createP5Mesh(
     {
-      position: [0.45, 0.4, 0],
+      position: [0.45, 0.05, 0],
     },
     {
       letter: 'E',
-      framesQuantity: 13,
+      framesQuantity: 16,
       strokeBaseWeight: 0.5,
-      strokeVariability: 1.8,
+      strokeVariability: 2,
     }
   );
 
-  createP5Mesh(
-    {
-      position: [-0.45, 0, 0],
-    },
-    {
-      letter: 'D',
-      framesQuantity: 25,
-      strokeBaseWeight: 3,
-      strokeVariability: 0.5,
-      curlScale: 1.8,
-      curlIntensity: 7,
-    }
-  );
+  // createP5Mesh(
+  //   {
+  //     position: [-0.45, 0, 0],
+  //   },
+  //   {
+  //     letter: 'D',
+  //     framesQuantity: 25,
+  //     strokeBaseWeight: 3,
+  //     strokeVariability: 0.5,
+  //     curlScale: 1.8,
+  //     curlIntensity: 7,
+  //   }
+  // );
 
   createP5Mesh(
     {
-      position: [-0.225, 0, 0],
+      position: [-0.15, 0.33, 0],
     },
     {
-      letter: 'K',
+      letter: '',
       isCircle: true,
       // isLarge: true,
-      // framesQuantity: 30,
-      poissonDiscRadius: 6,
+      framesQuantity: 3,
+      poissonDiscRadius: 8,
       strokeBaseWeight: 2,
       strokeVariability: 1,
       curlSeed: 10,
+    }
+  );
+
+  createP5Mesh(
+    {
+      position: [0.15, 0.33, 0],
+    },
+    {
+      letter: '',
+      isCircle: true,
+      // isLarge: true,
+      framesQuantity: 4,
+      poissonDiscRadius: 6,
+      strokeBaseWeight: 5,
+      strokeVariability: 1,
+      curlSeed: 12,
+      curlScale: 1,
+      curlIntensity: 0.05,
     }
   );
 
@@ -151,10 +172,10 @@ function createMesh() {
           new THREE.Color('#EAD7F3'),
           new THREE.Color('#BBACC2'),
           new THREE.Color('#B9C2A6'),
-          new THREE.Color('#4D523C'),
+          // new THREE.Color('#4D523C'),
           new THREE.Color('#ECFF92'),
-          new THREE.Color('#F69371'),
-          new THREE.Color('#C5765A'),
+          // new THREE.Color('#F69371'),
+          // new THREE.Color('#C5765A'),
         ],
       },
       circles: {
@@ -190,31 +211,26 @@ function animate() {
   // p5Mesh.rotation.y += 0.01;
 }
 
-function createP5Mesh(
+async function createP5Mesh(
   meshOptions: { position: [number, number, number] },
   sketchOptions: Parameters<typeof sketch>[1]
 ) {
-  const p5canvas = document.createElement('canvas');
-  const p = new P5(sketch(p5canvas, sketchOptions));
+  const texture = await createLetterTexture(sketchOptions);
+  const geo = new THREE.PlaneGeometry();
+  const mat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color('blue'),
+    side: THREE.DoubleSide,
+    map: texture,
+    opacity: 0.9,
+    transparent: true,
+  });
 
-  setTimeout(() => {
-    const geo = new THREE.PlaneGeometry();
-    const texture = new THREE.CanvasTexture(p5canvas);
-    const mat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color('white'),
-      side: THREE.DoubleSide,
-      map: texture,
-      opacity: 0.9,
-      transparent: true,
-    });
+  mat.needsUpdate = true;
 
-    mat.needsUpdate = true;
-
-    p5Mesh = new THREE.Mesh(geo, mat);
-    p5Mesh.scale.set(0.3, 0.3, 1);
-    p5Mesh.position.set(...meshOptions.position);
-    scene.add(p5Mesh);
-  }, 200);
+  p5Mesh = new THREE.Mesh(geo, mat);
+  p5Mesh.scale.set(0.3, 0.3, 1);
+  p5Mesh.position.set(...meshOptions.position);
+  scene.add(p5Mesh);
 }
 
 init();

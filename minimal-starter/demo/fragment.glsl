@@ -6,7 +6,7 @@ uniform float aspectRatio;
 const int circlesCount = 15;
 uniform vec2 circles[circlesCount];
 
-const int colorsCount = 7;
+const int colorsCount = 4;
 uniform vec3 proseColors[colorsCount];
 
 float circle(vec2 st, vec2 origin, float size) {

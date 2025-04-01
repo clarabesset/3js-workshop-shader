@@ -293,13 +293,16 @@ export const sketch =
 
     p.setup = () => {
       console.time('sketch setup');
+      console.log('before createCanvas', document.querySelectorAll('canvas').length);
       p.createCanvas(config.canvasSize, config.canvasSize, 'p2d', canvas);
+      console.log('after createCanvas', document.querySelectorAll('canvas').length);
       p.pixelDensity(config.pixelDensity);
       p.noLoop();
 
       console.time('createLetterFieldImg');
       const letterImg = createLetterFieldImg(p, letter);
       console.timeEnd('createLetterFieldImg');
+      console.log('after letterImg', document.querySelectorAll('canvas').length);
 
       if (config.debug.sampling) {
         const coords = [0.5, 0.25];
@@ -329,7 +332,7 @@ export const sketch =
         for (let y = 0; y < resolution; y++) {
           for (let x = 0; x < resolution; x++) {
             const coords = [y / resolution, x / resolution];
-            const curlVec = getCurl(coords[0], coords[1], curlSeed);
+            const curlVec = getCurl(curlScale, coords[0], coords[1], curlSeed);
 
             p.stroke(0, 128, 255, 255);
             p.strokeWeight(2);
