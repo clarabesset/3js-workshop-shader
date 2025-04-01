@@ -74,13 +74,9 @@ function createMesh() {
     fragmentShader,
     uniforms: {
       u_time: { value: 0 },
-      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      u_clickTime: { value: 1.0 },
-      u_clickOrigin: { value: new THREE.Vector2(0.5, 0.5) },
-      u_ringDuration: { value: 3.0 },
-      u_ringFrequency: { value: 50.0 },
-      u_ringSharpness: { value: 0.8 },
-      u_ringWidth: { value: 0.1 },
+      u_resolution: {
+        value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+      },
     },
   });
 
@@ -93,15 +89,11 @@ function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
   backgroundMaterial.uniforms.u_time.value += 0.01;
+  backgroundMaterial.uniforms.u_resolution.value.set(
+    renderer.domElement.width,
+    renderer.domElement.height
+  );
 }
-
-window.addEventListener('click', e => {
-  console.log('clicked');
-  const x = e.clientX / window.innerWidth;
-  const y = 1.0 - e.clientY / window.innerHeight;
-  backgroundMaterial.uniforms.u_clickOrigin.value.set(x, y);
-  backgroundMaterial.uniforms.u_clickTime.value = performance.now() * 0.001;
-});
 
 init();
 
