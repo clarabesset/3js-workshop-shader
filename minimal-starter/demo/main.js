@@ -1,7 +1,4 @@
 import * as THREE from 'three';
-import { Pane } from 'tweakpane';
-
-const pane = new Pane();
 
 import vertexShader from './vertex.glsl';
 import fragmentShader from './fragment.glsl';
@@ -22,29 +19,6 @@ function init() {
   createCamera();
   createMesh();
 
-  const params = {
-    duration: 3.0,
-    frequency: 10.0,
-    sharpness: 0.8,
-    width: 0.1,
-  };
-
-  pane.addBinding(params, 'duration', { min: 0.1, max: 10.0 }).on('change', ev => {
-    backgroundMaterial.uniforms.u_ringDuration.value = ev.value;
-  });
-
-  pane.addBinding(params, 'frequency', { min: 1.0, max: 50.0 }).on('change', ev => {
-    backgroundMaterial.uniforms.u_ringFrequency.value = ev.value;
-  });
-
-  pane.addBinding(params, 'sharpness', { min: 0.1, max: 5.0 }).on('change', ev => {
-    backgroundMaterial.uniforms.u_ringSharpness.value = ev.value;
-  });
-
-  pane.addBinding(params, 'width', { min: 0.01, max: 1.0 }).on('change', ev => {
-    backgroundMaterial.uniforms.u_ringWidth.value = ev.value;
-  });
-
   animate();
 }
 
@@ -55,8 +29,6 @@ function createRenderer() {
 
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
-
-let model = null;
 
 function createCamera() {
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -108,7 +80,7 @@ init();
 
 let scrollTimeout;
 
-window.addEventListener('wheel', () => {
+window.addEventListener('scroll', () => {
   targetScrollMultiplier = 5.0; // accélération temporaire
   clearTimeout(scrollTimeout);
   scrollTimeout = setTimeout(() => {
