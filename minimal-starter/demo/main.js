@@ -10,6 +10,9 @@ let renderer = null;
 let scene = null;
 let camera = null;
 
+let scrollSpeedMultiplier = 1.0;
+let targetScrollMultiplier = 1.0;
+
 let mesh = null;
 let backgroundMaterial = null;
 
@@ -87,14 +90,30 @@ function createMesh() {
 
 function animate() {
   requestAnimationFrame(animate);
-  renderer.render(scene, camera);
-  backgroundMaterial.uniforms.u_time.value += 0.01;
+
+  // interpolation douce vers la vitesse cible
+  scrollSpeedMultiplier += (targetScrollMultiplier - scrollSpeedMultiplier) * 0.1;
+
+  backgroundMaterial.uniforms.u_time.value += 0.001 * scrollSpeedMultiplier;
+
   backgroundMaterial.uniforms.u_resolution.value.set(
     renderer.domElement.width,
     renderer.domElement.height
   );
+
+  renderer.render(scene, camera);
 }
 
 init();
+
+let scrollTimeout;
+
+window.addEventListener('wheel', () => {
+  targetScrollMultiplier = 5.0; // accélération temporaire
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    targetScrollMultiplier = 1.0; // retour à la normale après un petit délai sans scroll
+  }, 200);
+});
 
 console.log('Hello Three.js!');
