@@ -42,7 +42,7 @@ function createScene() {
 }
 
 function createMesh() {
-  const geometry = new THREE.PlaneGeometry(1, 1, 128, 128);
+  const geometry = new THREE.PlaneGeometry(1.1, 1.1, 128, 128);
 
   backgroundMaterial = new THREE.ShaderMaterial({
     vertexShader,
@@ -81,7 +81,7 @@ init();
 let scrollTimeout;
 
 window.addEventListener('scroll', () => {
-  targetScrollMultiplier = 5.0; // accélération temporaire
+  targetScrollMultiplier = 8.0; // accélération temporaire
   clearTimeout(scrollTimeout);
   scrollTimeout = setTimeout(() => {
     targetScrollMultiplier = 1.0; // retour à la normale après un petit délai sans scroll
