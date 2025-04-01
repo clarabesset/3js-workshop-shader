@@ -88,4 +88,15 @@ window.addEventListener('scroll', () => {
   }, 200);
 });
 
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  backgroundMaterial.uniforms.u_resolution.value.set(
+    renderer.domElement.width,
+    renderer.domElement.height
+  );
+  mesh.scale.set(window.innerWidth / window.innerHeight, 1, 1);
+});
+
 console.log('Hello Three.js!');
