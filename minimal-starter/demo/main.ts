@@ -20,7 +20,93 @@ function init() {
   const scene = createScene();
   const camera = createCamera();
   createMesh();
-  createP5Mesh();
+
+  createP5Mesh(
+    {
+      position: [-0.45, 0.4, 0],
+    },
+    {
+      letter: 'P',
+      isCircle: true,
+      framesQuantity: 10,
+    }
+  );
+  createP5Mesh(
+    {
+      position: [-0.225, 0.4, 0],
+    },
+    {
+      letter: 'R',
+      framesQuantity: 60,
+      strokeBaseWeight: 2,
+      strokeVariability: 2.5,
+      poissonDiscRadius: 18,
+      curlSeed: 1,
+      curlIntensity: 2,
+    }
+  );
+  createP5Mesh(
+    {
+      position: [0, 0.4, 0],
+    },
+    {
+      letter: 'O',
+      framesQuantity: 55,
+      strokeBaseWeight: 0.5,
+      curlSeed: 5,
+    }
+  );
+  createP5Mesh(
+    {
+      position: [0.225, 0.4, 0],
+    },
+    {
+      letter: 'S',
+      framesQuantity: 5,
+      isLarge: true,
+    }
+  );
+  createP5Mesh(
+    {
+      position: [0.45, 0.4, 0],
+    },
+    {
+      letter: 'E',
+      framesQuantity: 13,
+      strokeBaseWeight: 0.5,
+      strokeVariability: 1.8,
+    }
+  );
+
+  createP5Mesh(
+    {
+      position: [-0.45, 0, 0],
+    },
+    {
+      letter: 'D',
+      framesQuantity: 25,
+      strokeBaseWeight: 3,
+      strokeVariability: 0.5,
+      curlScale: 1.8,
+      curlIntensity: 7,
+    }
+  );
+
+  createP5Mesh(
+    {
+      position: [-0.225, 0, 0],
+    },
+    {
+      letter: 'K',
+      isCircle: true,
+      // isLarge: true,
+      // framesQuantity: 30,
+      poissonDiscRadius: 6,
+      strokeBaseWeight: 2,
+      strokeVariability: 1,
+      curlSeed: 10,
+    }
+  );
 
   animate();
 }
@@ -104,28 +190,29 @@ function animate() {
   // p5Mesh.rotation.y += 0.01;
 }
 
-function createP5Mesh() {
-  const p = new P5(sketch, document.querySelector('body')!);
+function createP5Mesh(
+  meshOptions: { position: [number, number, number] },
+  sketchOptions: Parameters<typeof sketch>[1]
+) {
+  const p5canvas = document.createElement('canvas');
+  const p = new P5(sketch(p5canvas, sketchOptions));
 
   setTimeout(() => {
-    const p5canvas = document.querySelector('#defaultCanvas0')!;
-    console.log('p5canvas', p5canvas);
-
     const geo = new THREE.PlaneGeometry();
     const texture = new THREE.CanvasTexture(p5canvas);
     const mat = new THREE.MeshBasicMaterial({
       color: new THREE.Color('white'),
       side: THREE.DoubleSide,
       map: texture,
-      opacity: 0.3,
+      opacity: 0.9,
       transparent: true,
     });
 
     mat.needsUpdate = true;
 
     p5Mesh = new THREE.Mesh(geo, mat);
-    p5Mesh.scale.set(0.18, 0.18, 1);
-    p5Mesh.position.set(0.4, 0.4, 0);
+    p5Mesh.scale.set(0.3, 0.3, 1);
+    p5Mesh.position.set(...meshOptions.position);
     scene.add(p5Mesh);
   }, 200);
 }
